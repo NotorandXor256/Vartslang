@@ -1,8 +1,10 @@
 #ifndef ASSERTS_H
+#define ASSERTS_H
+
 #include<stdio.h>
 #include<stdlib.h>
-#include "grammer.h"
-#define ASSERTS_H
+
+#include "tokens.h"
 
 typedef char *String;
 typedef const char *CString;
@@ -86,13 +88,5 @@ typedef struct {
   Token_node *m_res; // linked list of tokens
 } lexer;
 
-typedef struct Parser {
-  Token_node *m_buf;
-  Token (*peek)(struct Parser*,int);
-  int (*peekFor)(struct Parser*, int);
-  Token (*consume)(struct Parser*);
-  int (*TryConsume)(struct Parser*,int);
-  Program *m_res;
-} Parser;
 
 #endif

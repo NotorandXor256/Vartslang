@@ -1,151 +1,63 @@
 #ifndef GRAMMER_H
 #define GRAMMER_H
-
-typedef enum {
-  // Keywords
-  IMP=100,    // <+$+>
-  FUN,        // <-@->
-  LOP,        // <-?->
-  FEL,        // <-:-> 
-  LST,        // <-[]->
-  STC,        // <-<+>->
-  ENM,        // <-<|>->
-  CLS,        // <-<:>->
-  ARG,        // @  
-  CAL,        // <|
-  IF,         // ?
-  RET,        // ^^^
-  LIT,        // []
-  STA,        // <+>
-  ENA,        // <|>
-  ITA,        // <:>
-  I32,
-  I64,
-  F32,
-  F64,
-  U8,
-  B1,
-    
-  // operator/assign
-  ASG=200,   // <-
-  // operator/arthimatic
-  MNS = 220,
-  PLS,
-  MUL,
-  DIV,
-  INC,       // ++
-  DEC,       // -- 
-  // operator/relational
-  GT = 240,  // >
-  LT,        // <
-  GTE,       // >=
-  LTE,       // <=
-  EQU,       // ==
-  NEQ,       // !=
-  // operator/logical
-  NOT = 260, // !
-  AND,       // /\ /
-  OR,        // \/
-  // operator/bitwise
-  BNT = 280,       // ~
-  BND,       // &
-  BOR,       // | 
-  XOR,       // ^ 
-  SHL,       // <<
-  SHR,       // >>
-  // operator/membership
-  IN = 290,  // <-:
-  // operator/unary
-  PMS, 
-  // operator/member_access
-  DOT,       // .
-  // operator/type_cast
-  TCO,       // (int), (float), (bool)
-
-  //puctation
-  ARW=300,   // ->
-  SMI,       // ;
-  OCR, CCR,  // { }
-  CMA,       // ,
-  NL,        // \n
-
-  // liter 
-  INT = 400,
-  FLT,
-  CHR,
-  STR,
-  TRU, 
-  FLS,
-  NULL_,
-
-  COLLECTION,
-  
-  //identifer
-  ID = 500,
-
-  // speical 
-  EOF_
-} TokenName;
-
-typedef enum {
-  KEYWORD= 1000,
-  TYPE,
-  OPRATOR,
-  OP_ASSIGN,
-  OP_ARTHIMATIC,
-  OP_RELATIONAL,
-  OP_LOGICAL,
-  OP_BITWISE,
-  OP_MEMBERSHIP,
-  OP_MEMBER_ACCESS,
-  OP_UNARY,
-  OP_TYPE_CAST,
-  PUNCTATION,
-  LITERAL,
-  IDENTIFER,
-  SPEICAL
-} TokenType;
-
-
-
+#include "lexer.h"
 #define GEN_FUN(name, start_, end_)       \
   int name(TokenType tok)                             \
   {                                                   \
     return tok >= (int)(start_) && (tok < (int)(end_));         \
   } 
 
+typedef struct Block Block;
+
+typedef struct  {
+  Token *type; 
+} Type;
+
+typedef struct {
+  Token *identifer; 
+} Identifer;
+
+typedef struct expression 
+{
+  int(*evaluate)(struct expression*);
+} expression;
+
+
+#include "parser.h"
+
 typedef struct {
   Type type;
-  ID id;
+  Identifer id;
   expression expr;
 } Assign_Var;
 
 typedef struct {
   Type *type;
-  ID id;
+  Identifer id;
   expression expr;
 } Assign_Arr;
 
 typedef struct Assign_Func {
   Type type;
-  ID id;
+  Identifer id;
   union {
-    Block b; 
-    Assign_Func *func_ptr;
+    Block *b; 
+    struct Assign_Func *func_ptr;
   } code;
 } Assign_Func;
 
 typedef struct {
-  ID id; 
-  Assign_Stm *assign_stm;
+  Identifer id; 
+  Assign_Var *assign_stm;
 } Assign_Struct;
 
 typedef struct {
+  Identifer id; 
   
 } Assign_Enum;
 
 typedef struct {
-  
+  Identifer id;
 } Assign_Class;
 
 typedef struct {
@@ -159,22 +71,22 @@ typedef struct {
 
 typedef struct If_Stm {
   expression *expr;
-  Block b;
+  Block *b;
   struct If_Stm *next;
 } If_Stm;
 
 typedef struct  {
   Assign_Stm *assign_stm;
   expression condition;   
-  expression *;
-  Block b;
+  expression *update;
+  Block *b;
 } Lp_Stm;
 
 typedef struct {
   Assign_Stm *assign_stm;
   expression condition;   
-  expression *;
-  Block b;
+  expression *update;
+  Block *b;
 } Do_Lp_Stm;
 
 typedef struct {
@@ -194,8 +106,8 @@ typedef union {
   Func_Call_Stm func_call_stm;
 } Compound_Stm;
 
-typedef struct  {
+struct block {
   Compound_Stm *statements;
-} Program;
+};
 
 #endif

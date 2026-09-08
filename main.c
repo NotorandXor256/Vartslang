@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "asserts.h"
 #include "file.h"
+#include "grammer.h"
 #include "asserts.h"
 #include "lexer.h"
 #include "parser.h"
-#include "grammer.h"
 
 int main(int argc, char* argv[]) {
   if(argc != 2) {

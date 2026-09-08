@@ -1,11 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 #include "asserts.h"
-typedef struct expression 
-{
-  int(*evaluate)(struct expression*);
-} expression;
-
+#include "lexer.h"
+#include "grammer.h"
 // Variable
 typedef struct 
 {
@@ -51,6 +48,16 @@ typedef struct
   int lp;
   int rp;
 } binding_power;
+
+typedef struct Parser {
+  Token_node *m_buf;
+  Token (*peek)(struct Parser*,int);
+  int (*peekFor)(struct Parser*, int);
+  Token (*consume)(struct Parser*);
+  int (*TryConsume)(struct Parser*,int);
+  Block *m_res;
+} Parser;
+
 
 Token peek_token(Parser *,int);
 int peekFor_token(Parser *,int);

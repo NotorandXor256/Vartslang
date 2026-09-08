@@ -11,12 +11,12 @@
 <if_stm> ::= 
     "?" "{" <expr> "}" <arrow> <block> 
     ( <arrow> "?" "{" <expr> "}" <arrow> <block> )* 
-    ( (<arrow> <block>) | E )
+    ( <arrow> <block>)?
 
 <lp_stm> ::= 
-    "<-?->" "{" ( <assign_stm> ("," <assign_stm>)* ) | E ";" 
-    <expr> | E ";" 
-    (<expr> ( ","<expr> )* ) | E "}" 
+    "<-?->" "{" ( <assign_stm> ("," <assign_stm>)* )? ";" 
+    <expr>? ";" 
+    (<expr> ( ","<expr> )* )? "}" 
     <arrow> <block>
 
 <do_lp_stm> ::= <block> <arrow> "<-?->" "{" 
@@ -53,14 +53,15 @@
 "<-<|>->" "{" "}" <identifer> <op/assign> "<|>" "{" "}" <arrow> 
 "{" 
     (
-        <identifer> ( (<op/assign>  <literal>) | E ) ","
+        <identifer> (<op/assign> <literal>)? ","
     )* 
+    (identifer (<op/assign> <literal>)? )?
 "}" ";"
 
 <assign/class> ::= "<-<:>->" "{" "}" <identifer> <op/assign_stm> 
                     "<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block> ";"
 
-<type> ::= "i32" | "i64" | "f32" | "f64" | "u8"
+<type> ::= "i32" | "i64" | "f32" | "f64" | "u8" | "b1"
 
 <expr> ::= <primary_expr> | <unary_expr> | <binary_expr> | <grouping>
 
@@ -102,7 +103,7 @@
 
 <primary_expr> ::= <literal> | <identifer> | <function_call>
 
-<literal> ::= <numral> | <STRING> | "true" | "false" | "NULL"
+<literal> ::= <numral> | <STRING> | "<:+:>" | "<:-:>" | "><"
 
 <identifer> ::= ( "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" | "_") 
                 ( "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" | "_" | <digit>)*
