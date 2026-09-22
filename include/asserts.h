@@ -81,6 +81,8 @@ typedef struct {
 
 LINKED_LIST(Token,Token_node);
 
+LINKED_LIST(Token_node, Token_2Dnode);
+
 typedef struct {
   chr_node *m_buf; 
   size_t m_index;

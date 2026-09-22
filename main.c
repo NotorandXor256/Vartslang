@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
     .peekFor = &peekFor_token,
     .consume = &consume_token,
     .TryConsume = &TryConsume_token,
+    .TryConsume_err = &TryConsume_err_token,
     .m_res = NULL,
   };
   if(tokens.m_buf == NULL){

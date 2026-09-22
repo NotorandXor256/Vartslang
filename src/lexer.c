@@ -39,12 +39,12 @@ Token to_token(const String token_src) {
   else if (strcmp(token_src, "<+>")== 0 )       return (Token){STA,KEYWORD,1,{NULL}};
   else if (strcmp(token_src, "<|>")== 0 )       return (Token){ENA,KEYWORD,1,{NULL}};
   else if (strcmp(token_src, "<:>")== 0 )       return (Token){ITA,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "i32") == 0)       return (Token){I32,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "i64") == 0)       return (Token){I64,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "f32") == 0)       return (Token){F32,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "f64") == 0)       return (Token){F64,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "u8") == 0)        return (Token){U8, KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "b1") == 0)        return (Token){B1, KEYWORD,1,{NULL}};
+  else if (strcmp(token_src, "i32") == 0)       return (Token){I32,TYPE,1,{NULL}};
+  else if (strcmp(token_src, "i64") == 0)       return (Token){I64,TYPE,1,{NULL}};
+  else if (strcmp(token_src, "f32") == 0)       return (Token){F32,TYPE,1,{NULL}};
+  else if (strcmp(token_src, "f64") == 0)       return (Token){F64,TYPE,1,{NULL}};
+  else if (strcmp(token_src, "u8") == 0)        return (Token){U8, TYPE,1,{NULL}};
+  else if (strcmp(token_src, "b1") == 0)        return (Token){B1, TYPE,1,{NULL}};
  
 
   // operator / assign

@@ -11,6 +11,7 @@ typedef enum {
   STC,        // <-<+>->
   ENM,        // <-<|>->
   CLS,        // <-<:>->
+  EXT,        // <=$=>
   ARG,        // @  
   CAL,        // <|
   IF,         // ?
@@ -76,7 +77,7 @@ typedef enum {
   STR,
   TRU, 
   FLS,
-  NULL_,
+  NULL_,  // ><
 
   COLLECTION,
   

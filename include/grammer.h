@@ -2,12 +2,31 @@
 #define GRAMMER_H
 #include "lexer.h"
 #define GEN_FUN(name, start_, end_)       \
-  int name(TokenType tok)                             \
-  {                                                   \
-    return tok >= (int)(start_) && (tok < (int)(end_));         \
-  } 
+static int name(TokenType tok)                             \
+{                                                   \
+  return tok >= (int)(start_) && (tok < (int)(end_));         \
+} 
+
+GEN_FUN(is_keyword,(int)FUN,(int)ASG)
+GEN_FUN(is_type, (int)I32,(int)ASG)
+GEN_FUN(is_operator, (int)ASG, (int) ARW)
+GEN_FUN(is_operator_infix,(int) ASG,(int) IN)
+GEN_FUN(is_operator_assign,(int) ASG,(int) MNS) 
+GEN_FUN(is_operator_arthimatic,(int) MNS,(int) GT)
+GEN_FUN(is_operator_relational, (int) GT, (int) NEQ)
+GEN_FUN(is_operator_logical, (int) NOT, (int) BNT)
+GEN_FUN(is_operator_bitwise, (int) BNT, (int) SHR)
+GEN_FUN(is_operator_membership, (int) IN, (int) PMS)
+GEN_FUN(is_operator_unary, (int) PMS, (int) DOT)
+GEN_FUN(is_operator_member_access, (int) DOT, (int) TCO)
+GEN_FUN(is_operator_type_cast, (int) TCO, (int) ARW)
+GEN_FUN(is_puctation, (int) ARW,(int) INT)
+GEN_FUN(is_liter,(int) INT,(int) COLLECTION)
+GEN_FUN(is_identifer,(int) ID,(int) EOF_)
+
 
 typedef struct Block Block;
+typedef struct Program Program;
 
 typedef struct  {
   Token *type; 
@@ -23,7 +42,7 @@ typedef struct expression
 } expression;
 
 
-#include "parser.h"
+//#include "parser.h"
 
 typedef struct {
   Type type;
@@ -44,6 +63,7 @@ typedef struct Assign_Func {
     Block *b; 
     struct Assign_Func *func_ptr;
   } code;
+  expression ret;
 } Assign_Func;
 
 typedef struct {
@@ -97,17 +117,29 @@ typedef struct {
 
 } Func_Call_Stm;
 
-typedef union {
+typedef struct {
   Assign_Stm assign_stm;
+  Func_Call_Stm func_call_stm;
+} Simple_Stm;
+
+typedef union {
   If_Stm if_stm;
   Lp_Stm lp_stm;
   Do_Lp_Stm do_lp_stm;
   For_Each_Loop for_each_loop;
-  Func_Call_Stm func_call_stm;
 } Compound_Stm;
 
 struct block {
   Compound_Stm *statements;
+};
+
+typedef union {
+  Simple_Stm *stament;
+  Compound_Stm *statements;
+} Statement;
+
+struct Program {
+  Statement *stms; 
 };
 
 #endif

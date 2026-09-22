@@ -32,9 +32,9 @@
 
 <assign/variable> ::= <type> <identifer> (<op/assign> <expr> | E) ";"
 
-<assign/array> ::= "<-[]->" "{" <type>  ( "," <type> )* "}" (<op/assign>  "[]" ( <arrary> | <expr> ) ) | E ";"
+<assign/array> ::=  "<-[]->" "{" <type>  ( "," <type> )* "}" (<op/assign>  "[]" ( <arrary> | <expr> ) ) | E ";"
 
-<assign/function> ::= "<-@->" "{" <type> "}" <identifer> (<op/assign> (<block> | <expr>) ) | E ";"
+<assign/function> ::= "<*$*>"? "<-@->" "{" <type> "}" <identifer> (<op/assign> (<block> | <expr>) ) | E ";"
 
 <assign/struct> ::= 
 "<-<+>->" "{" "}" <identifer> 
