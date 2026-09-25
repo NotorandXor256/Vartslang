@@ -54,12 +54,6 @@ typedef struct
   int rp;
 } binding_power;
 
-typedef struct {
-  Token type;
-  Token id;
-  Token expr;
-} decleartion_stmt;
-
 expression* create_expression(Parser *parser, int right_bp, TokenName stopAt);
 
 Token peek_token(struct Parser *parser,int offset)  // front
@@ -378,31 +372,175 @@ void prattParse(Parser *parser, TokenName stopAt)
   printf("result = %d\n", ast->evaluate(ast));
 }
 
-void parse_declear_stmt(Parser *parser)
+
+void parse_args(Parser *parser, int (*token)(int)) 
 {
-  decleartion_stmt *stmt = (decleartion_stmt *) malloc(sizeof(decleartion_stmt));
-  stmt->type = *(parser->TryConsume(parser,TYPE));
-  parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
-  /*if(parser->peekFor(parser,ID,0)) {
-    stmt->id = *(parser->consume(parser));
+  if(!token(parser->peek(parser,0).tok))
+  {
+    return;
   }
-  else {
-    printE("expect a IDENTIFER");
-  }*/
+  parser->consume(parser);
+  for(int i = 0; parser->peekFor(parser, CMA,0); i++)
+  {
+    parser-> TryConsume_err(parser, CMA, "expected ',' in args");
+    if(!token(parser->peek(parser,0).tok))
+    {
+      printE("invaild token");
+      return;
+    } 
+    parser->consume(parser);
+  }
+  
+}
+
+void Parse(Parser *);
+
+void parse_block(Parser *parser) {
+  parser->TryConsume_err(parser, OCR, "expected '{' in block");
+  Parse(parser);
+  parser->TryConsume_err(parser, CCR, "expected '}' in block");
+}
+
+void parse_declear_var_stmt(Parser *parser)
+{
+  Declear_var *stmt = (Declear_var *) malloc(sizeof(Declear_var));
+  stmt->type = parser->TryConsume(parser,TYPE);
+  parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
   if(parser->peekFor(parser, OP_ASSIGN, 0)) {
     parser->consume(parser);
     prattParse(parser, SMI);
   }
-  parser->TryConsume_err(parser,SMI, "forget ';' in declear_stmt"); 
 }
 
+int function_args_type(int token){
+  return token == TYPE;
+}
+int function_args_declear(int token){ // add parser to this 
+  return token == TYPE;
+}
+void parse_declear_func_stmt(Parser *parser)
+{
+  Declear_Func *stmt = (Declear_Func *) malloc(sizeof(Declear_Func));
+  stmt->is_extern = parser->TryConsume(parser, EXT) != NULL ? 1:0;
+  parser->TryConsume_err(parser, FUN, "function Expected '<-@->' in fuction declearation statement" );
+  parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+  // stmt->type = parser->TryConsume(parser, TYPE);
+  parse_args(parser,function_args_type );
+  parser->TryConsume_err(parser, CCR, "expected '}'  near expr function declearation");
+  stmt->id = parser->TryConsume_err(parser, ID, "expected a name for the function");
+  if(parser->TryConsume(parser,OP_ASSIGN)) {
+    parser->TryConsume_err(parser, ARG, "expected '@' in cutntion delcreation");
+    parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+    // stmt->args = parser_args(parser);
+    parse_args(parser,function_args_declear);
+    parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
+    parser->TryConsume_err(parser, ARW, "Expected '->' in function declearation");
+    // stmt->args - parser_block(parser);
+    parse_block(parser);
+  }
+}
+
+
+void parse_loop_stmt(Parser *parser)
+{
+  parser->TryConsume(parser, LOP);
+  parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+  parse_declear_var_stmt(parser);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  prattParse(parser, SMI);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
+  parser->TryConsume_err(parser, ARW,"Expected '->' in loop");
+  parse_block(parser);
+}
+
+void parse_foreach_loop_stmt(Parser *parser) {
+
+}
+
+void parse_do_while_stmt(Parser *parser) {
+
+}
+
+void parse_if_stmt(Parser *parser) 
+{
+  parser->consume(parser);
+  parser->TryConsume_err(parser, OCR, "expected '{' if statement");
+  prattParse(parser, CCR);
+  parser->TryConsume_err(parser, CCR, "expected '}' if statement");
+  parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
+  parse_block(parser);
+  if(parser->peekFor(parser,ARW,0) && parser->peekFor(parser,IF,1))
+  {
+    parser->TryConsume(parser,ARW);
+    parse_if_stmt(parser);
+  }
+  if(parser->peekFor(parser,ARW,0)) 
+  {
+    parser->TryConsume(parser, ARW);
+    parse_block(parser);
+  }
+}
+
+void parse_declear_arr_stmt(Parser *parser)
+{
+  // parser->TryConsume(parser, LST);
+  // parser->TryConsume_err(parser, OCR);
+  // parser->Try
+}
+
+void parse_declear_str_stmt(Parser *parser) 
+{
+  // parser->TryConsume(parser,STC);
+  // parser->TryConsume_err(parser,OCR);
+  // parser->TryConsume_err(parser, CCR);
+  // parser->TryConsume_err(parser, ID);
+  // if(parser->TryConsume(parser, OP_ASSIGN) != NULL) 
+  // {
+  //   parser->TryConsume_err(parser, STA);
+  //   parser->TryConsume_err(parser, OCR);
+  //   parser->TryConsume_err(parser, CCR);
+  //   parser->TryConsume_err(parser, ARW);
+  //   parser->TryConsume_err(parser, OCR);
+  //   parse_args(parser);
+  //   parser->TryConsume_err(parser, CCR);
+  // }
+}
+
+void parse_declear_enum_stmt(Parser *parser) 
+{
+  // parser->TryConsume_err(parser,ENM, "Expected '<-<|>->' ");
+  // parser->TryConsume_err(parser, OCR, "expected '{' enum decleartion statement"});
+  // parser->TryConsume_err(parser,CCR, "Expec");
+  // parser->TryConsume_err(parser, ID);
+  //
+  // if(parser->TryConsume(parser,OP_ASSIGN)){
+  //   parser->TryConsume_err(parser, ENA);
+  //   parser->TryConsume_err(parser,OCR);
+  //   parser->TryConsume_err(parser,CCR);
+  //   parser->TryConsume_err(parser,ARW);
+  //   parser->TryConsume_err(parser,OCR);
+  //   parse_args(parser);
+  //   parser->TryConsume_err(parser,CCR);
+  // }
+}
+
+void parse_declear_class_stmt(Parser *parser)
+{
+  // parser->TryConsume_err(parser, CLS);
+  // parser->TryConsume_err(parser,OCR);
+  // parser->TryConsume_err(parser,CCR);
+  // parser->TryConsume_err(parser, ID);
+  // parser->TryConsume_err(parser);
+}
 
 Statement *create_stm(Parser *parser)
 {
   switch (parser->peek(parser,0).type) {
     case TYPE:
       // decleartion 
-      parse_declear_stmt(parser);
+      parse_declear_var_stmt(parser);
+      parser->TryConsume_err(parser, SMI, "expected ';'");
       break;
     case KEYWORD:
       /*
@@ -410,27 +548,44 @@ Statement *create_stm(Parser *parser)
       switch (parser->peek(parser,0).tok) {
         case IMP:
           // import statement
+          parser->consume(parser);
+          parser->TryConsume_err(parser, ID, "expected 'IDENTIFER'");
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case EXT:
+          parse_declear_func_stmt(parser);
           break;
         case FUN:
           // Fucntion decleartion
+          parse_declear_func_stmt(parser);
           break;
         case LOP:
           // Loop statement
+          parse_loop_stmt(parser);
           break;
         case FEL:
           // for each loop statement
+          parse_foreach_loop_stmt(parser);
         case LST:
           // list decleartion
+          parse_declear_arr_stmt(parser);
         case STC:
           // Struct decleartion
+          parse_declear_str_stmt(parser);
         case ENM:
           // Enum decleartion
+          parse_declear_enum_stmt(parser);
         case CLS:
           // class decleartion
+          parse_declear_class_stmt(parser);
         case IF:
           // if elif else statement
+          parse_if_stmt(parser);
         case RET:
           // return statement
+          parser->consume(parser);
+          prattParse(parser,SMI);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
         default:
           printE("invaaild statement");
           printf("token = %d\n", parser->peek(parser,0).tok);
@@ -441,11 +596,18 @@ Statement *create_stm(Parser *parser)
       /*
        */
       // do-while loop
+      parse_do_while_stmt(parser);
       break;
     case IDENTIFER:
       // 
       // assignment statement
       //*function call */ 
+      parser->consume(parser);
+      // switch (parser->peek(parser,0)) {
+      //   case name:
+      //     break;
+      //   case 
+      // }
       break;
 
     case EOF_:

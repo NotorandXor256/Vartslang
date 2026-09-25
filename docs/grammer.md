@@ -2,11 +2,43 @@
 
 <program> ::= (<compound_stm> | <simple_stm>)*
 
-<simple_stm> ::= <assign_stm> | <return_stm> | <function_call_stm> | <import_stm>
+<simple_stm> ::= <decleartive_stm> | <assign_stm> | <return_stm> | <function_call_stm> | <import_stm>
 
 <compound_stm> ::=  <if_stm> | <lp_stm> | <do_lp_stm> | <for_each_loop>   
 
-<assign_stm> ::= <assign/variable> | <assign/array> | <assign/function> | <assign/struct> | <assign/enum> | <assign/class>
+<decleartive_stm> ::= <declear/variable> | <declear/array> | <declear/function>> | <declear/struct> | <declear/enum> | <declear/class> ";"
+
+<declear/variable> :: <type> <identifer> (<op/assign> <expr>)? 
+
+<declear/array> ::=  "<-[]->" "{" <expr>  ( "," <expr> )* "}" <identifer> (<op/assign> "[]" <array> )?
+
+<array> ::= "{" ( ( <expr> | <array> ) ( "," <expr> | <array> )* )? "}" 
+
+<declear/function> ::= "<=$=>"? "<-@->" "{" <type> "}" <identifer>  (<op/assign> "@" "{" <declear/variable>? ("," <declear/variable> )* "}" <arrow> <block> )?
+
+<declear/struct> ::= 
+"<-<+>->" "{" "}" <identifer> 
+( 
+    <op/assign> 
+    "<+>" "{" "}" <arrow> 
+    "{" 
+        ( <decleartive_stm> ";" )* 
+
+    "}"
+)? 
+
+<declear/enum> ::= 
+"<-<|>->" "{" "}" <identifer> (<op/assign> "<|>" "{" "}" <arrow> 
+"{" 
+    (identifer (<op/assign> <literal>)? )?
+    (
+        "," <identifer> (<op/assign> <literal>)? 
+    )* 
+"}" )?
+
+<declear/class> ::=
+"<-<:>->" "{" "}" <identifer> ( <op/assign_stm> 
+"<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block>  )? 
 
 <if_stm> ::= 
     "?" "{" <expr> "}" <arrow> <block> 
@@ -20,9 +52,9 @@
     <arrow> <block>
 
 <do_lp_stm> ::= <block> <arrow> "<-?->" "{" 
-    E | ( <assign_stm> ("," <assign_stm>)* ) ";" 
-    <expr> | E ";" 
-    E | ( <expr> ( <expr> ",")* ) "}"
+    ( <assign_stm> ("," <assign_stm>)* )? ";" 
+    <expr>? ";" 
+    ( <expr> ( <expr> ",")* )? "}"
 
 <for_each_loop> ::= "<-:->" "{" <type> <identifer> "<-:" <identifer> "}" <arrow> <block>
 
@@ -30,11 +62,13 @@
 
 <block> ::= "{" (<compound_stm>)* "}"
 
-<assign/variable> ::= <type> <identifer> (<op/assign> <expr> | E) ";"
+<assign_stm> ::= <assign/variable> | <assign/array> | <assign/function> | <assign/struct> | <assign/enum> | <assign/class> ";"
 
-<assign/array> ::=  "<-[]->" "{" <type>  ( "," <type> )* "}" (<op/assign>  "[]" ( <arrary> | <expr> ) ) | E ";"
+<assign/variable> ::= <identifer> <op/assign> <expr> 
 
-<assign/function> ::= "<*$*>"? "<-@->" "{" <type> "}" <identifer> (<op/assign> (<block> | <expr>) ) | E ";"
+<assign/array> ::= <identifer> (<op/assign>  "[]" ( <arrary> | <expr> ) )? 
+
+<assign/function> ::=  <identifer> (<op/assign> <block> ) 
 
 <assign/struct> ::= 
 "<-<+>->" "{" "}" <identifer> 
@@ -43,23 +77,22 @@
     "<+>" "{" "}" <arrow> 
     ( 
         "{" ( <assign_stm> ";" )* "}" |
-        <expr> |
+        identifer |
         E
     ) 
-) | E 
-";"
+)?
 
 <assign/enum> ::= 
 "<-<|>->" "{" "}" <identifer> <op/assign> "<|>" "{" "}" <arrow> 
 "{" 
-    (
-        <identifer> (<op/assign> <literal>)? ","
-    )* 
-    (identifer (<op/assign> <literal>)? )?
-"}" ";"
+   (
+        (<identifer> | <assign_stm>) |
+        ("," ( <identifer> | <assign_stm> ))*
+   )?
+"}"
 
-<assign/class> ::= "<-<:>->" "{" "}" <identifer> <op/assign_stm> 
-                    "<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block> ";"
+<assign/class> ::= <identifer> <op/assign_stm> 
+                    "<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block> 
 
 <type> ::= "i32" | "i64" | "f32" | "f64" | "u8" | "b1"
 
@@ -99,7 +132,7 @@
 
 <op/bitwise> ::= "~" | "&" | "^~^" | "|"
 
-<function_call> ::= <identifer> "<|" "{" (<expr> ("," <expr>)* ("," <identifer> <op/assign> <expr>)* ) | E  "}" ";"
+<function_call> ::= <identifer> ( "<|" "{" (<expr> ("," <expr>)* ("," <assign_var_stm> ("," <assign_var_stm>)*)? )?  "}" )*
 
 <primary_expr> ::= <literal> | <identifer> | <function_call>
 

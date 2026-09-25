@@ -16,7 +16,10 @@ char peek_char(lexer *src, int offset) {
 char consume_char(lexer *src) {
   // return the charater at m_index and increment
   // the index by one
-  if (src->m_index >= src->src.len) return '\0';
+  if (src->m_index >= src->src.len){
+    printf("i am over stoping \n");
+    return '\0';
+  }
   src->m_index++;
   return *(src->src.src + src->m_index - 1);
 }
@@ -24,7 +27,7 @@ char consume_char(lexer *src) {
 Token to_token(const String token_src) {
   // Keyword
   if      (strcmp(token_src, "<+$+>") == 0)     return (Token){IMP,KEYWORD,1,{NULL}};
-  else if (strcmp(token_src, "<-@->") == 0)     return (Token){F32,KEYWORD,1,{NULL}};
+  else if (strcmp(token_src, "<-@->") == 0)     return (Token){FUN,KEYWORD,1,{NULL}};
   else if (strcmp(token_src, "<-?->") == 0)     return (Token){LOP,KEYWORD,1,{NULL}};
   else if (strcmp(token_src, "<-:->") == 0)     return (Token){FEL,KEYWORD,1,{NULL}};
   else if (strcmp(token_src, "<-[]->") == 0)    return (Token){LST,KEYWORD,1,{NULL}};
@@ -98,11 +101,13 @@ Token to_token(const String token_src) {
   else if (strcmp(token_src, ":+:") == 0)       return (Token){TRU,LITERAL,0,{.numral_value = 1}};
   else if (strcmp(token_src, ":-:") == 0)       return (Token){FLS,LITERAL,0,{.numral_value= 0}};
   else if (strcmp(token_src, "><") == 0)        return (Token){NULL_,LITERAL,0,{NULL}};
+  else if (*token_src == 0)                     return (Token){EOF_, SPEICAL, 0 ,{NULL}};
 
   else if (isalpha(*token_src))                 return (Token){ID, IDENTIFER,0, {.str_value = token_src}};
 
   else {
     printf("lexer.c to_token function: unknown token %s, %d, %d\n", token_src,*token_src,*(token_src+1));
+    // printf("is token_src space or EOF %d and %d \n", )
     exit(-1);
     return (Token){0,0,0,{NULL}}; // make sure you define this
   }
@@ -130,7 +135,7 @@ Token ret_token(lexer *src, int (*fun)(char), int offset) {
   }
   *(str_buf + lenght) = '\0';
   printf("str_buf : %s\n",str_buf);
-
+  src->m_buf = NULL;
   Token tok = to_token(str_buf);
   free(str_buf);
   str_buf = NULL;
@@ -154,7 +159,7 @@ int numa(char chr) {
 
 int is_pucuation(char chr){
   return (
-    chr == ';' || 
+    // chr == ';' || 
     chr == '{' || 
     chr == '}' || 
     chr == ',' || 
@@ -182,6 +187,7 @@ void tokenize(lexer *src) { // make this return list of tokens somehow
   for (int i = 0; src->m_index < src->src.len; i++) 
   {
     if(i>500) break;
+    printf("is EoF %d\n", peek_char(src,2));
     if (isalpha(peek_char(src, 0))) 
     {
       Token_node *tok = new_Token_node(ret_token(src,alpha,0));
@@ -194,7 +200,11 @@ void tokenize(lexer *src) { // make this return list of tokens somehow
     } 
     else if (is_pucuation(peek_char(src,0)))
     {
-      Token_node *tok = new_Token_node(ret_token(src,reverse_puc,-1));
+      // Token_node *tok = new_Token_node(ret_token(src,reverse_puc,-1));
+      char temp[2];
+      temp[0] = consume_char(src);
+      temp[1] = '\0';
+      Token_node *tok = new_Token_node(to_token(temp));
       push_Token_node(&(src->m_res), tok);
     } 
     else if (!(peek_char(src,0) == ' ' || peek_char(src,0) == '\n')) 

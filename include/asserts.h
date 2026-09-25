@@ -51,6 +51,9 @@ static name *push_##name(name **cur,name *next_el) {\
     (*cur)->next_el = next_el; \
     return next_el; \
   } \
+  else {  \
+    printL("It didn't push the memeber"); \
+  } \
   name *temp_ptr = next_##name(*cur); \
   return push_##name(&temp_ptr,next_el);\
 }\

@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     .m_res = NULL,
   };
   if(tokens.m_buf == NULL){
-    printE("tokens.M-res is null");
+    printE("tokens.M_buf is null");
     return -1;
   }
   Parse(&tokens);

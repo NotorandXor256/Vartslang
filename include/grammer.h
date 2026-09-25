@@ -28,27 +28,36 @@ GEN_FUN(is_identifer,(int) ID,(int) EOF_)
 typedef struct Block Block;
 typedef struct Program Program;
 
-typedef struct  {
-  Token *type; 
-} Type;
-
-typedef struct {
-  Token *identifer; 
-} Identifer;
+typedef Token Type;
+typedef Token Identifer;
 
 typedef struct expression 
 {
   int(*evaluate)(struct expression*);
 } expression;
 
+typedef struct Arrary 
+{
+    
+} Arrary;
 
 //#include "parser.h"
+typedef struct {
+  Type *type;
+  Identifer *id;
+  expression expr;
+} Declear_var;
 
 typedef struct {
-  Type type;
-  Identifer id;
+  Identifer *id;
   expression expr;
 } Assign_Var;
+
+typedef struct {
+  expression *type;
+  Identifer *id;
+   
+} Declear_Arr;
 
 typedef struct {
   Type *type;
@@ -56,15 +65,18 @@ typedef struct {
   expression expr;
 } Assign_Arr;
 
-typedef struct Assign_Func {
-  Type type;
-  Identifer id;
+typedef Declear_var arguments;
+typedef struct {
+  int is_extern;
+  Type *type;
+  Identifer *id;
+  arguments *args; 
   union {
     Block *b; 
-    struct Assign_Func *func_ptr;
+    Identifer *func_ptr; // if assigned value of an other function
   } code;
-  expression ret;
-} Assign_Func;
+  // expression ret; // return statement
+} Declear_Func;
 
 typedef struct {
   Identifer id; 
@@ -81,12 +93,21 @@ typedef struct {
 } Assign_Class;
 
 typedef struct {
+  Declear_var Var;
+  Declear_Arr Arr;
+  Declear_Func Func;
+  // Declear_Struct Struct;
+  // Declear_Enum Enum;
+  // Declear_Class Class;
+} Declear_Stm;
+
+typedef struct {
   Assign_Var Var;
   Assign_Arr Arr;
-  Assign_Func Func;
-  Assign_Struct Struct;
-  Assign_Enum Enum;
-  Assign_Class Class;
+  // Assign_Func Func;
+  // Assign_Struct Struct;
+  // Assign_Enum Enum;
+  // Assign_Class Class;
 } Assign_Stm;
 
 typedef struct If_Stm {
@@ -114,7 +135,8 @@ typedef struct {
 } For_Each_Loop;
 
 typedef struct {
-
+  Token *output_type;
+  Token *id;
 } Func_Call_Stm;
 
 typedef struct {
