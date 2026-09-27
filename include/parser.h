@@ -23,6 +23,6 @@ Token *TryConsume_err_token(Parser *, int, String);
 
 expression* create_expression(Parser *parser, int right_bp, TokenName stopAt);
 
-void Parse(Parser *);
+void Parse(Parser *, TokenType);
 
 #endif // !PARSER_H

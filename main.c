@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     printE("tokens.M_buf is null");
     return -1;
   }
-  Parse(&tokens);
+  Parse(&tokens, EOF_);
   free(src.src.src);
   return 0;
 }

@@ -84,6 +84,7 @@ Token *consume_token(struct Parser *parser)    // advance
   }
   Token *temp = &(parser->m_buf->val); 
   parser->m_buf = parser->m_buf->next_el;
+  printL("token: %d", temp->tok);
   return temp;
 }
 
@@ -373,31 +374,21 @@ void prattParse(Parser *parser, TokenName stopAt)
 }
 
 
-void parse_args(Parser *parser, int (*token)(int)) 
+void parse_args(Parser *parser, int (*token)(Parser *)) 
 {
-  if(!token(parser->peek(parser,0).tok))
-  {
-    return;
-  }
-  parser->consume(parser);
+  token(parser);
   for(int i = 0; parser->peekFor(parser, CMA,0); i++)
   {
     parser-> TryConsume_err(parser, CMA, "expected ',' in args");
-    if(!token(parser->peek(parser,0).tok))
-    {
-      printE("invaild token");
-      return;
-    } 
-    parser->consume(parser);
+    token(parser);
   }
-  
 }
 
-void Parse(Parser *);
+void Parse(Parser *, TokenType);
 
 void parse_block(Parser *parser) {
   parser->TryConsume_err(parser, OCR, "expected '{' in block");
-  Parse(parser);
+  Parse(parser, CCR);
   parser->TryConsume_err(parser, CCR, "expected '}' in block");
 }
 
@@ -412,11 +403,14 @@ void parse_declear_var_stmt(Parser *parser)
   }
 }
 
-int function_args_type(int token){
-  return token == TYPE;
+int function_args_type(Parser *parser){
+  parser->TryConsume_err(parser, TYPE, "expected Type in function args type");
+  return 0;
 }
-int function_args_declear(int token){ // add parser to this 
-  return token == TYPE;
+int function_args_declear(Parser *parser)
+{ // add parser to this 
+  parse_declear_var_stmt(parser);
+  return 0;
 }
 void parse_declear_func_stmt(Parser *parser)
 {
@@ -534,6 +528,11 @@ void parse_declear_class_stmt(Parser *parser)
   // parser->TryConsume_err(parser);
 }
 
+int parse_expr(Parser *parser) {
+  prattParse(parser, CCR);
+  return 0;
+}
+
 Statement *create_stm(Parser *parser)
 {
   switch (parser->peek(parser,0).type) {
@@ -554,10 +553,12 @@ Statement *create_stm(Parser *parser)
           break;
         case EXT:
           parse_declear_func_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
           break;
         case FUN:
           // Fucntion decleartion
           parse_declear_func_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
           break;
         case LOP:
           // Loop statement
@@ -566,26 +567,37 @@ Statement *create_stm(Parser *parser)
         case FEL:
           // for each loop statement
           parse_foreach_loop_stmt(parser);
+          break;
         case LST:
           // list decleartion
           parse_declear_arr_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
         case STC:
           // Struct decleartion
           parse_declear_str_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
         case ENM:
           // Enum decleartion
           parse_declear_enum_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
         case CLS:
           // class decleartion
           parse_declear_class_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
         case IF:
           // if elif else statement
           parse_if_stmt(parser);
+          break;
         case RET:
           // return statement
           parser->consume(parser);
           prattParse(parser,SMI);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
         default:
           printE("invaaild statement");
           printf("token = %d\n", parser->peek(parser,0).tok);
@@ -603,11 +615,18 @@ Statement *create_stm(Parser *parser)
       // assignment statement
       //*function call */ 
       parser->consume(parser);
-      // switch (parser->peek(parser,0)) {
-      //   case name:
-      //     break;
-      //   case 
-      // }
+      switch (parser->peek(parser,0).tok) {
+        case CAL:
+          parser->consume(parser);
+          parser->TryConsume_err(parser, OCR, "expected '{' in function call");
+          parse_args(parser, parse_expr);
+          parser->TryConsume_err(parser, CCR, "expected '}' in function call");
+          parser->TryConsume_err(parser, SMI, "expected ';' in function call");
+          break;
+        case ARW:
+          // parse assignment statements
+          break;
+      }
       break;
 
     case EOF_:
@@ -636,9 +655,9 @@ Statement *create_stm(Parser *parser)
   // } 
 }
 
-void Parse(Parser *parser) 
+void Parse(Parser *parser, TokenType stopAt) 
 {
-  for (int i= 0; !parser->peekFor(parser, EOF_, 0); i++) 
+  for (int i= 0; !parser->peekFor(parser, stopAt, 0); i++) 
   {
     Statement *stm = create_stm(parser);
   }
