@@ -1,26 +1,60 @@
 # Vartslang's grammer
 
-<program> ::= (<compound_stm>)*
+<program> ::= (<compound_stm> | <simple_stm>)*
 
-<compound_stm> ::= <assign_stm> | <if_stm> | <lp_stm> | <do_lp_stm> | <for_each_loop> | <function_call_stm>  
+<simple_stm> ::= <decleartive_stm> | <assign_stm> | <return_stm> | <function_call_stm> | <import_stm>
 
-<assign_stm> ::= <assign/variable> | <assign/array> | <assign/function> | <assign/struct> | <assign/enum> | <assign/class>
+<compound_stm> ::=  <if_stm> | <lp_stm> | <do_lp_stm> | <for_each_loop>   
+
+<decleartive_stm> ::= <declear/variable> | <declear/array> | <declear/function>> | <declear/struct> | <declear/enum> | <declear/class> ";"
+
+<declear/variable> :: <type> <identifer> (<op/assign> <expr>)? 
+
+<declear/array> ::=  "<-[]->" "{" <expr>  ( "," <expr> )* "}" <identifer> (<op/assign> "[]" <array> )?
+
+<array> ::= "{" ( ( <expr> | <array> ) ( "," <expr> | <array> )* )? "}" 
+
+<declear/function> ::= "<=$=>"? "<-@->" "{" <type> "}" <identifer>  (<op/assign> "@" "{" <declear/variable>? ("," <declear/variable> )* "}" <arrow> <block> )?
+
+<declear/struct> ::= 
+"<-<+>->" "{" "}" <identifer> 
+( 
+    <op/assign> 
+    "<+>" "{" "}" <arrow> 
+    "{" 
+        ( <decleartive_stm> ";" )* 
+
+    "}"
+)? 
+
+<declear/enum> ::= 
+"<-<|>->" "{" "}" <identifer> (<op/assign> "<|>" "{" "}" <arrow> 
+"{" 
+    (identifer (<op/assign> <literal>)? )?
+    (
+        "," <identifer> (<op/assign> <literal>)? 
+    )* 
+"}" )?
+
+<declear/class> ::=
+"<-<:>->" "{" "}" <identifer> ( <op/assign_stm> 
+"<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block>  )? 
 
 <if_stm> ::= 
     "?" "{" <expr> "}" <arrow> <block> 
     ( <arrow> "?" "{" <expr> "}" <arrow> <block> )* 
-    ( (<arrow> <block>) | E )
+    ( <arrow> <block>)?
 
 <lp_stm> ::= 
-    "<-?->" "{" ( <assign_stm> ("," <assign_stm>)* ) | E ";" 
-    <expr> | E ";" 
-     (<expr> | ( <expr> ",")) | E "}" 
+    "<-?->" "{" ( <assign_stm> ("," <assign_stm>)* )? ";" 
+    <expr>? ";" 
+    (<expr> ( ","<expr> )* )? "}" 
     <arrow> <block>
 
 <do_lp_stm> ::= <block> <arrow> "<-?->" "{" 
-    E | ( <assign_stm> ("," <assign_stm>)* ) ";" 
-    <expr> | E ";" 
-    E | (<expr> | <expr> ( <expr> ",")* ) "}"
+    ( <assign_stm> ("," <assign_stm>)* )? ";" 
+    <expr>? ";" 
+    ( <expr> ( <expr> ",")* )? "}"
 
 <for_each_loop> ::= "<-:->" "{" <type> <identifer> "<-:" <identifer> "}" <arrow> <block>
 
@@ -28,19 +62,39 @@
 
 <block> ::= "{" (<compound_stm>)* "}"
 
-<assign/variable> ::= <type> <identifer> (<op/assign> <expr> | E) ";"
+<assign_stm> ::= <assign/variable> | <assign/array> | <assign/function> | <assign/struct> | <assign/enum> | <assign/class> ";"
 
-<assign/array> ::= "<-[]->" "{" <type>  ( "," <type> )* "}" (<op/assign> ) ";"
+<assign/variable> ::= <identifer> <op/assign> <expr> 
 
-<assign/function> ::= "<-@->" "{" <type> "}" <identifer> <op/assign> <block> ";"
+<assign/array> ::= <identifer> (<op/assign>  "[]" ( <arrary> | <expr> ) )? 
 
-<assign/struct> ::= "<-<+>->" "{" "}" <identifer> <op/assign> "<+>" "{" "}" <op/assign> "{" ( <assign_stm>* ) "}" ";"
+<assign/function> ::=  <identifer> (<op/assign> <block> ) 
 
-<assign/enum> ::= "<-<|>->" "{" "}" <identifer> <arrow> "<|>" "{" "}" <op/assign> "{" ((<identifer> ((<op/assign>) | E)* "}" ";"
+<assign/struct> ::= 
+"<-<+>->" "{" "}" <identifer> 
+( 
+    <op/assign> 
+    "<+>" "{" "}" <arrow> 
+    ( 
+        "{" ( <assign_stm> ";" )* "}" |
+        identifer |
+        E
+    ) 
+)?
 
-<assign/class> ::= "<-<:>->" "{" "}" <identifer> <arrow> "<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <op/assign> <block> ";"
+<assign/enum> ::= 
+"<-<|>->" "{" "}" <identifer> <op/assign> "<|>" "{" "}" <arrow> 
+"{" 
+   (
+        (<identifer> | <assign_stm>) |
+        ("," ( <identifer> | <assign_stm> ))*
+   )?
+"}"
 
-<type> ::= "i32" | "i64" | "f32" | "f64" | "u8"
+<assign/class> ::= <identifer> <op/assign_stm> 
+                    "<:>" "{" ( <identifer> ("," <identifer> )* ) | E "}" <arrow> <block> 
+
+<type> ::= "i32" | "i64" | "f32" | "f64" | "u8" | "b1"
 
 <expr> ::= <primary_expr> | <unary_expr> | <binary_expr> | <grouping>
 
@@ -78,11 +132,11 @@
 
 <op/bitwise> ::= "~" | "&" | "^~^" | "|"
 
-<function_call> ::= <identifer> "<|" "{" (<expr> ("," <expr>)* ("," <identifer> <op/assign> <expr>)* ) | E  "}" ";"
+<function_call> ::= <identifer> ( "<|" "{" (<expr> ("," <expr>)* ("," <assign_var_stm> ("," <assign_var_stm>)*)? )?  "}" )*
 
 <primary_expr> ::= <literal> | <identifer> | <function_call>
 
-<literal> ::= <numral> | <STRING> | "true" | "false" | "NULL"
+<literal> ::= <numral> | <STRING> | "<:+:>" | "<:-:>" | "><"
 
 <identifer> ::= ( "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" | "_") 
                 ( "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" | "_" | <digit>)*

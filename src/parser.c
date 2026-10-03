@@ -9,75 +9,104 @@
 #include "grammer.h"
 #include "asserts.h"
 
-/*void peak_token(lexer *src, int offset)
-  {
-
-  }*/
-/* 
-   Token_node consume_token() 
-   {
-/*return m_token++;
-}*/
-/*void ret_tree(parser *tokens) {
-  Token_node *j = NULL;
-  Expr *k = parser->m_res;
-  for(Token_node *i = tokens->lexer_list->m_res; i != NULL; i = next_Token_node(i)) {
-  if()
-  }
-  }*/
-/*void try_consume(parser *tokens, tokentype expected_token)
+typedef struct 
 {
-  return tokens->token == expected_token;   
-}*/
+  expression base;
+  Token var;
+} variable_literal;
 
+typedef struct 
+{
+  expression base;
+  Token number;
+} number_literal;
 
+typedef struct 
+{
+  expression base;
+  expression* body;
+} sub_expression;
 
-/*typedef enum  token_id;
+typedef struct 
+{
+  expression base;
+  expression* lhs;
+  Token operator;
+  expression* rhs;
+} infix_expression;
 
-// A token - returned by the lexer
 typedef struct {
-    char* start_ptr;
-    char* end_ptr;
-    token_id type_id;
-} token;
-*/
-
-// char *current_pos;
-expression* create_expression(Parser *parser, int right_bp);
-void display(expression* a , int indent){
-
-}
-Token peek_token(Parser *parser,int offset)  // front
+  expression base;
+  Token operator;
+  expression* body;
+} prefix_expression;
+//  <body:expression> <opeartor>
+typedef struct 
 {
-  Token_node *temp = parser->m_buf;
-  for (int i = offset; i < offset; i--){
+  expression base;
+  Token operator;
+  expression* body;
+} postfix_expression;
+
+typedef struct 
+{
+  int lp;
+  int rp;
+} binding_power;
+
+expression* create_expression(Parser *parser, int right_bp, TokenName stopAt);
+
+Token peek_token(struct Parser *parser,int offset)  // front
+{
+  Token_node *temp = ((Parser *)parser)->m_buf;
+  for (int i = offset; i != 0; i--){
     temp = next_Token_node(temp);
+  }
+  if(parser->m_buf == NULL) {
+    printE("parser->m_buf is null");
+    exit(-1);
   }
   return temp->val;
 }
 
-int peekFor_token(Parser *parser,int lookingFor)
+int peekFor_token(struct Parser *parser,int lookingFor,int offset)
 {
-  Token temp = parser->peek(parser,0);
+  Token temp = parser->peek(parser,offset);
   return temp.tok == (TokenName) lookingFor || temp.type == (TokenType) lookingFor;
 }
 
-void consume_token(Parser *parser)    // advance
+Token *consume_token(struct Parser *parser)    // advance
 {
   if(parser->m_buf->val.tok == EOF_) {
     printE("end of tokens");
-    return;
+    // return &(parser->m_buf->val.tok); 
+    return NULL;
   }
+  Token *temp = &(parser->m_buf->val); 
   parser->m_buf = parser->m_buf->next_el;
+  printL("token: %d", temp->tok);
+  return temp;
 }
 
-int TryConsume_token(Parser *parser, TokenName o)
+Token *TryConsume_token(struct Parser *parser, int o)
 {
-  if(parser->peekFor(parser,o)) {
+  if(parser->peekFor(parser,o,0)) {
     // consume_token();
-    return 1;
+    return parser->consume(parser);
   }
-  return 0;
+  return NULL;
+}
+
+Token *TryConsume_err_token(struct Parser *parser, int o, String message) 
+{
+  Token *temp = parser->TryConsume(parser,o);
+  if(temp != NULL) {
+    return temp;
+  } else {
+    printE(message);
+    exit(EXIT_FAILURE);
+  }
+  return NULL; 
 }
 
 binding_power RightAssociative(int p) 
@@ -98,7 +127,7 @@ int prefix_bp_lookup(TokenName type)
     case MNS: return 300;
     case NOT: return 300; 
     case BNT: return 300;
-    default: return 0;
+    default:  return 0;
   }
 }
 
@@ -140,7 +169,8 @@ int number_evaluate(expression* s)
 {
   number_literal* self = (number_literal*)s;
   // add logic 
-  return 23;
+  //number_literal
+  return self->number.value.numral_value;
 }
 
 int prefix_expression_evaluate(expression* s) 
@@ -217,10 +247,9 @@ int infix_expression_evaluate(expression* s)
 expression* create_number_literal(Parser *parser) 
 {
   number_literal* result = malloc(sizeof(number_literal));
-  result->base.display = &number_display;
   result->base.evaluate = &number_evaluate;
 
-  result->number = parser->consume(parser);
+  result->number = *(parser->consume(parser));
   //advance();
 
   return (expression*)result;
@@ -229,10 +258,9 @@ expression* create_number_literal(Parser *parser)
 expression* create_variable_literal(Parser *parser) 
 {
   variable_literal* result = malloc(sizeof(variable_literal));
-  result->base.display = &variable_display;
   result->base.evaluate = &variable_evaluate;
 
-  result->var = parser->consume(parser);
+  result->var = *(parser->consume(parser));
   // advance();
 
   return (expression*)result;
@@ -241,16 +269,15 @@ expression* create_variable_literal(Parser *parser)
 expression* create_sub_expression(Parser *parser) 
 {
   sub_expression* result = malloc(sizeof(sub_expression));
-  result->base.display = &sub_expression_display;
   result->base.evaluate = &sub_expression_evaluate;
-  if (!parser->peekFor(parser,OCR)) {
+  if (!parser->peekFor(parser,OCR,0)) {
     // Should do error handling!
     return (expression*)result;
   }
   parser->consume(parser);
   // advance();
-  result->body = create_expression(parser,0);
-  if (!parser->peekFor(parser,OCR)) {
+  result->body = create_expression(parser,0, SMI);
+  if (!parser->peekFor(parser,OCR,0)) {
     // Should do error handling!
     return (expression*)result;
   }
@@ -263,13 +290,12 @@ expression* create_sub_expression(Parser *parser)
 expression* create_infix_expression(Parser *parser, expression* _lhs, int min_bp ) 
 {
   infix_expression* result = malloc(sizeof(infix_expression));
-  result->base.display = &infix_display;
   result->base.evaluate = &infix_expression_evaluate;
 
   result->lhs = _lhs;
-  result->operator = parser->consume(parser);
+  result->operator = *(parser->consume(parser));
   // advance();
-  result->rhs = create_expression(parser, min_bp, SEM);    
+  result->rhs = create_expression(parser, min_bp, SMI);    
 
   return(expression*)result;
 }
@@ -277,10 +303,9 @@ expression* create_infix_expression(Parser *parser, expression* _lhs, int min_bp
 expression* create_prefix_expression(Parser *parser, int min_bp ) 
 {
   prefix_expression* result = malloc(sizeof(prefix_expression));
-  result->base.display = &prefix_display;
   result->base.evaluate = &prefix_expression_evaluate;
-  result->operator = parser->consume(parser);
-  result->body = create_expression(parser,min_bp, stopAt);
+  result->operator = *(parser->consume(parser));
+  result->body = create_expression(parser,min_bp, SMI);
 
   return(expression*)result;
 }
@@ -288,12 +313,11 @@ expression* create_prefix_expression(Parser *parser, int min_bp )
 expression* create_postfix_expression(Parser *parser, expression* _lhs, int min_bp ) 
 {
   prefix_expression* result = malloc(sizeof(prefix_expression));
-  result->base.display = &postfix_display;
   result->base.evaluate = &postfix_expression_evaluate;
 
   result->body = _lhs;
   // if (parser->peek(0) )
-  result->operator = parser->consume(parser);
+  result->operator = *(parser->consume(parser));
 
   return(expression*)result;
 }
@@ -303,25 +327,37 @@ expression* create_expression(Parser *parser, int right_bp, TokenName stopAt)
   expression* result = NULL;
 
   // Check to see if this is a prefix or a valid infix left-hand-side.
-  if (parser->peekFor(parser,(int)INT)) {
+  if (parser->peekFor(parser,(int)INT, 0)) 
+  {
     result = create_number_literal(parser);
-  } else if (parser->peekFor(parser,ID)) {
+  } else if (parser->peekFor(parser,ID,0)) 
+  {
     result = create_variable_literal(parser);
-  } else if (parser->peekFor(parser,OCR)) {
+  } else if (parser->peekFor(parser,OCR,0)) 
+  {
     result = create_sub_expression(parser);
-
     // --- Prefix Operators ---
-  } else if (parser->peekFor(parser,OP_UNARY)) {
+  } else if (parser->peekFor(parser,OP_UNARY,0)) 
+  {
+    if(parser->m_buf == NULL){
+      printE("error of null");
+    }
     result = create_prefix_expression( parser, prefix_bp_lookup( parser->peek(parser,0).tok ) );
   }
 
   // Check the next token, if its a valid infix token. Plus the LHS we've just parsed down the AST
   // and into the infix AST node.
-  while(!(parser->peekFor(parser,(int) stopAt) ) && right_bp < bp_lookup( parser->peek(parser,0).tok ).lp) {
-    if(parser->peekFor(parser,INC) || parser->peekFor(parser,DEC)) {
-      result = create_postfix_expression(parser, bp_lookup( parser->peek(parser,0).tok).rp);
+  while(
+      !(parser->peekFor(parser,(int) stopAt,0) ) && 
+      right_bp < bp_lookup( parser->peek(parser,0).tok ).lp
+  ) 
+  {
+    if(parser->peekFor(parser,INC,0) || parser->peekFor(parser,DEC,0)) 
+    {
+      result = create_postfix_expression(parser, result, bp_lookup( parser->peek(parser,0).tok ).rp);
     } 
-    else {
+    else 
+    {
       result = create_infix_expression(parser, result, bp_lookup( parser->peek(parser,0).tok).rp );
     } 
   }
@@ -329,16 +365,332 @@ expression* create_expression(Parser *parser, int right_bp, TokenName stopAt)
   assert(result != NULL);
   return result;
 }
-//
-// void prattParse(Parser *parser, TokenName stopAt) 
-// {
-//   expression* ast = create_expression(parser, 0, stopAt);       
-// }
-//
-// void Parsering(Parser *parser) 
-// {
-//   prattParse();
-// }
-//
+
+expression* prattParse(Parser *parser, TokenName stopAt) 
+{
+  printf("token - %d\n " ,next_Token_node( next_Token_node(parser->m_buf) )->val.tok);
+  expression* ast = create_expression(parser, 0, stopAt);       
+  printf("result = %d\n", ast->evaluate(ast));
+  return ast;
+}
+
+
+void parse_args(Parser *parser, int (*token)(Parser *)) 
+{
+  token(parser);
+  for(int i = 0; parser->peekFor(parser, CMA,0); i++)
+  {
+    parser-> TryConsume_err(parser, CMA, "expected ',' in args");
+    token(parser);
+  }
+}
+
+void Parse(Parser *, TokenType);
+
+void parse_block(Parser *parser) {
+  parser->TryConsume_err(parser, OCR, "expected '{' in block");
+  Parse(parser, CCR);
+  parser->TryConsume_err(parser, CCR, "expected '}' in block");
+}
+
+Declear_var* parse_declear_var_stmt(Parser *parser)
+{
+  Declear_var *stmt = (Declear_var *) malloc(sizeof(Declear_var));
+  stmt->type = parser->TryConsume(parser,TYPE);
+  stmt->id = parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
+  if(parser->peekFor(parser, OP_ASSIGN, 0)) {
+    parser->consume(parser);
+    stmt->expr = prattParse(parser, SMI);
+  }
+  return stmt;
+}
+
+int function_args_type(Parser *parser){
+  parser->TryConsume_err(parser, TYPE, "expected Type in function args type");
+  return 0;
+}
+int function_args_declear(Parser *parser)
+{ // add parser to this 
+  parse_declear_var_stmt(parser);
+  return 0;
+}
+void parse_declear_func_stmt(Parser *parser)
+{
+  Declear_Func *stmt = (Declear_Func *) malloc(sizeof(Declear_Func));
+  stmt->is_extern = parser->TryConsume(parser, EXT) != NULL ? 1:0;
+  parser->TryConsume_err(parser, FUN, "function Expected '<-@->' in fuction declearation statement" );
+  parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+  stmt->type = parser->TryConsume(parser, TYPE);
+  // parse_args(parser,function_args_type );
+  parser->TryConsume_err(parser, CCR, "expected '}'  near expr function declearation");
+  stmt->id = parser->TryConsume_err(parser, ID, "expected a name for the function");
+  if(parser->TryConsume(parser,OP_ASSIGN)) {
+    parser->TryConsume_err(parser, ARG, "expected '@' in cutntion delcreation");
+    parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+    // stmt->args = parser_args(parser);
+    parse_args(parser,function_args_declear);
+    parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
+    parser->TryConsume_err(parser, ARW, "Expected '->' in function declearation");
+    // stmt->args - parser_block(parser);
+    parse_block(parser);
+  }
+}
+
+
+void parse_assignment_var_stmt(Parser *parser)
+{
+  parser->TryConsume_err(parser, IDENTIFER, "Expected IDENTIFER in assignment statment");
+  parser->TryConsume_err(parser, OP_ASSIGN, "Expected '<-' in assignment statement");
+  // parser->TryConsume_err(parser, O)
+}
+
+int function_args_var_declear(Parser *parser) {
+  parser->TryConsume_err(parser, TYPE, "expected Type in loop_stm");
+  return 0;
+}
+
+int parse_expr(Parser *parser) {
+  prattParse(parser, CCR);
+  return 0;
+}
+
+void parse_loop_stmt(Parser *parser)
+{
+  parser->TryConsume(parser, LOP);
+  parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+  // parse_declear_var_stmt(parser);
+  parse_args(parser, function_args_declear);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  prattParse(parser, SMI);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  parse_args(parser, parse_expr);
+  parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
+  parser->TryConsume_err(parser, ARW,"Expected '->' in loop");
+  parse_block(parser);
+}
+
+void parse_foreach_loop_stmt(Parser *parser) {
+
+}
+
+void parse_do_while_stmt(Parser *parser) {
+
+}
+
+void parse_if_stmt(Parser *parser) 
+{
+  parser->consume(parser);
+  parser->TryConsume_err(parser, OCR, "expected '{' if statement");
+  prattParse(parser, CCR);
+  parser->TryConsume_err(parser, CCR, "expected '}' if statement");
+  parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
+  parse_block(parser);
+  while (parser->peekFor(parser,ARW,0) && parser->peekFor(parser,IF,1))
+  {
+    parser->TryConsume(parser,ARW);
+    parser->TryConsume_err(parser, IF, "expected '?' in if statement");
+    parser->TryConsume_err(parser, OCR, "expected '{' if statement");
+    prattParse(parser, CCR);
+    parser->TryConsume_err(parser, CCR, "expected '}' if statement");
+    parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
+    parse_block(parser);
+  }
+  if(parser->peekFor(parser,ARW,0)) 
+  {
+    parser->TryConsume(parser, ARW);
+    parse_block(parser);
+  }
+}
+
+void parse_declear_arr_stmt(Parser *parser)
+{
+  // parser->TryConsume(parser, LST);
+  // parser->TryConsume_err(parser, OCR);
+  // parser->Try
+}
+
+void parse_declear_stru_stmt(Parser *parser) 
+{
+  // parser->TryConsume(parser,STC);
+  // parser->TryConsume_err(parser,OCR);
+  // parser->TryConsume_err(parser, CCR);
+  // parser->TryConsume_err(parser, ID);
+  // if(parser->TryConsume(parser, OP_ASSIGN) != NULL) 
+  // {
+  //   parser->TryConsume_err(parser, STA);
+  //   parser->TryConsume_err(parser, OCR);
+  //   parser->TryConsume_err(parser, CCR);
+  //   parser->TryConsume_err(parser, ARW);
+  //   parser->TryConsume_err(parser, OCR);
+  //   parse_args(parser);
+  //   parser->TryConsume_err(parser, CCR);
+  // }
+}
+
+void parse_declear_enum_stmt(Parser *parser) 
+{
+  // parser->TryConsume_err(parser,ENM, "Expected '<-<|>->' ");
+  // parser->TryConsume_err(parser, OCR, "expected '{' enum decleartion statement"});
+  // parser->TryConsume_err(parser,CCR, "Expec");
+  // parser->TryConsume_err(parser, ID);
+  //
+  // if(parser->TryConsume(parser,OP_ASSIGN)){
+  //   parser->TryConsume_err(parser, ENA);
+  //   parser->TryConsume_err(parser,OCR);
+  //   parser->TryConsume_err(parser,CCR);
+  //   parser->TryConsume_err(parser,ARW);
+  //   parser->TryConsume_err(parser,OCR);
+  //   parse_args(parser);
+  //   parser->TryConsume_err(parser,CCR);
+  // }
+}
+
+void parse_declear_class_stmt(Parser *parser)
+{
+  // parser->TryConsume_err(parser, CLS);
+  // parser->TryConsume_err(parser,OCR);
+  // parser->TryConsume_err(parser,CCR);
+  // parser->TryConsume_err(parser, ID);
+  // parser->TryConsume_err(parser);
+}
+Statement *create_stm(Parser *parser)
+{
+  switch (parser->peek(parser,0).type) {
+    case TYPE:
+      // decleartion 
+      parse_declear_var_stmt(parser);
+      parser->TryConsume_err(parser, SMI, "expected ';'");
+      break;
+    case KEYWORD:
+      /*
+       */
+      switch (parser->peek(parser,0).tok) {
+        case IMP:
+          // import statement
+          parser->consume(parser);
+          parser->TryConsume_err(parser, ID, "expected 'IDENTIFER'");
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case EXT:
+          parse_declear_func_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case FUN:
+          // Fucntion decleartion
+          parse_declear_func_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case LOP:
+          // Loop statement
+          parse_loop_stmt(parser);
+          break;
+        case FEL:
+          // for each loop statement
+          parse_foreach_loop_stmt(parser);
+          break;
+        case LST:
+          // list decleartion
+          parse_declear_arr_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case STC:
+          // Struct decleartion
+          parse_declear_stru_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case ENM:
+          // Enum decleartion
+          parse_declear_enum_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case CLS:
+          // class decleartion
+          parse_declear_class_stmt(parser);
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        case IF:
+          // if elif else statement
+          parse_if_stmt(parser);
+          break;
+        case RET:
+          // return statement
+          parser->consume(parser);
+          if(parser->TryConsume(parser, SMI) != NULL)
+          {
+            break;
+          }
+          if(parser->TryConsume(parser, NULL_) != NULL) 
+          {
+            
+          } else {
+            prattParse(parser,SMI);
+          }
+          parser->TryConsume_err(parser, SMI, "expected ';'");
+          break;
+        default:
+          printE("invaaild statement");
+          printf("token = %d\n", parser->peek(parser,0).tok);
+          exit(EXIT_FAILURE);
+      }
+      break;
+    case PUNCTATION:
+      /*
+       */
+      // do-while loop
+      parse_do_while_stmt(parser);
+      break;
+    case IDENTIFER:
+      // 
+      // assignment statement
+      //*function call */ 
+      parser->consume(parser);
+      switch (parser->peek(parser,0).tok) {
+        case CAL:
+          parser->consume(parser);
+          parser->TryConsume_err(parser, OCR, "expected '{' in function call");
+          parse_args(parser, parse_expr);
+          parser->TryConsume_err(parser, CCR, "expected '}' in function call");
+          parser->TryConsume_err(parser, SMI, "expected ';' in function call");
+          break;
+        case ARW:
+          // parse assignment statements
+          break;
+      }
+      break;
+
+    case EOF_:
+      return NULL;
+    default:
+      printf("tokentype = %d\n", parser->peek(parser,0).type);
+      printf("token = %d\n", parser->peek(parser,0).tok);
+  }
+  // int lenght = 0;
+  // // Token_2Dnode *temp_ptr = (Token_2Dnode *) malloc(sizeof(Token_2Dnode));
+  // Token_2Dnode *Ast_list;
+  // Token_node **temp_ptr = &(parser->m_buf);
+  // /*
+  //  * (*temp_ptr)->val->tok != SEMI || !parser->peekFor(parser,KEYWORD)
+  //  **/
+  // for (int i = 0; parser->peekFor(parser,EOF_,0); i++)
+  // {
+  //   if(parser->peekFor(parser,SMI, 0) || parser->peekFor(parser, KEYWORD, 1))
+  //   {
+  //
+  //   } 
+  //   else 
+  //   {
+  //     printE("Error");
+  //   }
+  // } 
+}
+
+void Parse(Parser *parser, TokenType stopAt) 
+{
+  for (int i= 0; !parser->peekFor(parser, stopAt, 0); i++) 
+  {
+    Statement *stm = create_stm(parser);
+  }
+}
+
 
 

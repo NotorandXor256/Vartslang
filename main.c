@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "asserts.h"
 #include "file.h"
+#include "grammer.h"
 #include "asserts.h"
 #include "lexer.h"
 #include "parser.h"
-#include "grammer.h"
 
 int main(int argc, char* argv[]) {
   if(argc != 2) {
@@ -18,34 +20,33 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  printf("%s\n", content.src);
+  
   lexer src = {
     .m_buf = NULL,
     .m_index= 0,
     .src = content,
     .m_res = NULL 
   };
-
-  if(0) {
-    TokenType a = to_token(";");
-    printf("%d\n----\n", a);
-    Token_node aa = {
-      .val = a,
-      .next_el = NULL
-    };
-    //printf("%d\n", (src.m_res)->type);
-    return 0;
-  }
+  
   tokenize(&src);
+  if(src.m_res == NULL){
+    printE("src.M-res is null");
+    return -1;
+  }
   Parser tokens = {
-    .m_buf = src->m_res,
+    .m_buf = src.m_res,
     .peek = &peek_token,
-    .peekFor = &peekFor,
+    .peekFor = &peekFor_token,
     .consume = &consume_token,
-    .TryConsume = &TryConsume,
+    .TryConsume = &TryConsume_token,
+    .TryConsume_err = &TryConsume_err_token,
     .m_res = NULL,
   };
-  Parsing(&tokens);
+  if(tokens.m_buf == NULL){
+    printE("tokens.M_buf is null");
+    return -1;
+  }
+  Parse(&tokens, EOF_);
   free(src.src.src);
   return 0;
 }

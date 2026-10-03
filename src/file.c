@@ -3,7 +3,7 @@
 #include "file.h"
 #include "asserts.h"
 
-src_code read_file(CString filename) {
+src_code read_file(String filename) {
   FILE *f = fopen(filename,"r");
 
   if (!f) {

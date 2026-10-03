@@ -1,8 +1,25 @@
 #ifndef ASSERTS_H
+#define ASSERTS_H
+
 #include<stdio.h>
 #include<stdlib.h>
-#include "grammer.h"
-#define ASSERTS_H
+
+#include "tokens.h"
+
+typedef char *String;
+typedef const char *CString;
+
+
+void printE_impl(CString func,CString file,int line, CString message, ...);
+
+void printL_impl(CString func, CString file, int line, CString message, ...);
+
+#define printE(msg, ...) \
+    printE_impl(__func__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
+
+#define printL(msg, ...) \
+    printL_impl(__func__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
+
 
 #define LINKED_LIST(type, name)      \
 typedef struct name {          \
@@ -16,7 +33,9 @@ static name *new_##name(type val) {   \
   return temp; \
 } \
 static name *next_##name(name *cur){ \
-  return cur->next_el; \
+  if(cur->next_el != NULL) return cur->next_el; \
+  printE("there is no next memeber");   \
+  return NULL;   \
 }     \
 static name *push_##name(name **cur,name *next_el) {\
   if(cur == NULL) { \
@@ -32,6 +51,9 @@ static name *push_##name(name **cur,name *next_el) {\
     (*cur)->next_el = next_el; \
     return next_el; \
   } \
+  else {  \
+    printL("It didn't push the memeber"); \
+  } \
   name *temp_ptr = next_##name(*cur); \
   return push_##name(&temp_ptr,next_el);\
 }\
@@ -45,10 +67,6 @@ static void show_item_##name(name *n) { \
 
 // type, identifer
 LINKED_LIST(char,chr_node);
-
-typedef char *String;
-typedef const char *CString;
-
 typedef struct {
   String src; 
   size_t len;
@@ -57,14 +75,16 @@ typedef struct {
 typedef struct {
   TokenName tok;
   TokenType type;
+  int is_null;
   union {
-    int numral_value; 
     String str_value;
-    int is_null;
+    int numral_value; 
   } value; 
 } Token;
 
 LINKED_LIST(Token,Token_node);
+
+LINKED_LIST(Token_node, Token_2Dnode);
 
 typedef struct {
   chr_node *m_buf; 
@@ -73,23 +93,5 @@ typedef struct {
   Token_node *m_res; // linked list of tokens
 } lexer;
 
-typedef struct Parser {
-  Token_node *m_buf;
-  Token (*peek)(struct Parser*,int);
-  int (*peekFor)(struct Parser*, int);
-  Token (*consume)(struct Parser*);
-  int (*TryConsume)(struct Parser*,int);
-  Program *m_res;
-} Parser;
-
-void printE_impl(CString func,CString file,int line, CString message, ...);
-
-void printL_impl(CString func, CString file, int line, CString message, ...);
-
-#define printE(msg, ...) \
-    printE_impl(__func__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
-
-#define printL(msg, ...) \
-    printL_impl(__func__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
 
 #endif
