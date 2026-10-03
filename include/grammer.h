@@ -45,7 +45,7 @@ typedef struct Arrary
 typedef struct {
   Type *type;
   Identifer *id;
-  expression expr;
+  expression *expr;
 } Declear_var;
 
 typedef struct {

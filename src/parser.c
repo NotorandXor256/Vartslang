@@ -366,11 +366,12 @@ expression* create_expression(Parser *parser, int right_bp, TokenName stopAt)
   return result;
 }
 
-void prattParse(Parser *parser, TokenName stopAt) 
+expression* prattParse(Parser *parser, TokenName stopAt) 
 {
   printf("token - %d\n " ,next_Token_node( next_Token_node(parser->m_buf) )->val.tok);
   expression* ast = create_expression(parser, 0, stopAt);       
   printf("result = %d\n", ast->evaluate(ast));
+  return ast;
 }
 
 
@@ -392,15 +393,16 @@ void parse_block(Parser *parser) {
   parser->TryConsume_err(parser, CCR, "expected '}' in block");
 }
 
-void parse_declear_var_stmt(Parser *parser)
+Declear_var* parse_declear_var_stmt(Parser *parser)
 {
   Declear_var *stmt = (Declear_var *) malloc(sizeof(Declear_var));
   stmt->type = parser->TryConsume(parser,TYPE);
-  parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
+  stmt->id = parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
   if(parser->peekFor(parser, OP_ASSIGN, 0)) {
     parser->consume(parser);
-    prattParse(parser, SMI);
+    stmt->expr = prattParse(parser, SMI);
   }
+  return stmt;
 }
 
 int function_args_type(Parser *parser){
@@ -418,8 +420,8 @@ void parse_declear_func_stmt(Parser *parser)
   stmt->is_extern = parser->TryConsume(parser, EXT) != NULL ? 1:0;
   parser->TryConsume_err(parser, FUN, "function Expected '<-@->' in fuction declearation statement" );
   parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
-  // stmt->type = parser->TryConsume(parser, TYPE);
-  parse_args(parser,function_args_type );
+  stmt->type = parser->TryConsume(parser, TYPE);
+  // parse_args(parser,function_args_type );
   parser->TryConsume_err(parser, CCR, "expected '}'  near expr function declearation");
   stmt->id = parser->TryConsume_err(parser, ID, "expected a name for the function");
   if(parser->TryConsume(parser,OP_ASSIGN)) {
@@ -435,14 +437,33 @@ void parse_declear_func_stmt(Parser *parser)
 }
 
 
+void parse_assignment_var_stmt(Parser *parser)
+{
+  parser->TryConsume_err(parser, IDENTIFER, "Expected IDENTIFER in assignment statment");
+  parser->TryConsume_err(parser, OP_ASSIGN, "Expected '<-' in assignment statement");
+  // parser->TryConsume_err(parser, O)
+}
+
+int function_args_var_declear(Parser *parser) {
+  parser->TryConsume_err(parser, TYPE, "expected Type in loop_stm");
+  return 0;
+}
+
+int parse_expr(Parser *parser) {
+  prattParse(parser, CCR);
+  return 0;
+}
+
 void parse_loop_stmt(Parser *parser)
 {
   parser->TryConsume(parser, LOP);
   parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
-  parse_declear_var_stmt(parser);
+  // parse_declear_var_stmt(parser);
+  parse_args(parser, function_args_declear);
   parser->TryConsume_err(parser, SMI, "expected ';'");
   prattParse(parser, SMI);
   parser->TryConsume_err(parser, SMI, "expected ';'");
+  parse_args(parser, parse_expr);
   parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
   parser->TryConsume_err(parser, ARW,"Expected '->' in loop");
   parse_block(parser);
@@ -464,10 +485,15 @@ void parse_if_stmt(Parser *parser)
   parser->TryConsume_err(parser, CCR, "expected '}' if statement");
   parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
   parse_block(parser);
-  if(parser->peekFor(parser,ARW,0) && parser->peekFor(parser,IF,1))
+  while (parser->peekFor(parser,ARW,0) && parser->peekFor(parser,IF,1))
   {
     parser->TryConsume(parser,ARW);
-    parse_if_stmt(parser);
+    parser->TryConsume_err(parser, IF, "expected '?' in if statement");
+    parser->TryConsume_err(parser, OCR, "expected '{' if statement");
+    prattParse(parser, CCR);
+    parser->TryConsume_err(parser, CCR, "expected '}' if statement");
+    parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
+    parse_block(parser);
   }
   if(parser->peekFor(parser,ARW,0)) 
   {
@@ -483,7 +509,7 @@ void parse_declear_arr_stmt(Parser *parser)
   // parser->Try
 }
 
-void parse_declear_str_stmt(Parser *parser) 
+void parse_declear_stru_stmt(Parser *parser) 
 {
   // parser->TryConsume(parser,STC);
   // parser->TryConsume_err(parser,OCR);
@@ -527,12 +553,6 @@ void parse_declear_class_stmt(Parser *parser)
   // parser->TryConsume_err(parser, ID);
   // parser->TryConsume_err(parser);
 }
-
-int parse_expr(Parser *parser) {
-  prattParse(parser, CCR);
-  return 0;
-}
-
 Statement *create_stm(Parser *parser)
 {
   switch (parser->peek(parser,0).type) {
@@ -575,7 +595,7 @@ Statement *create_stm(Parser *parser)
           break;
         case STC:
           // Struct decleartion
-          parse_declear_str_stmt(parser);
+          parse_declear_stru_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
           break;
         case ENM:
@@ -595,7 +615,16 @@ Statement *create_stm(Parser *parser)
         case RET:
           // return statement
           parser->consume(parser);
-          prattParse(parser,SMI);
+          if(parser->TryConsume(parser, SMI) != NULL)
+          {
+            break;
+          }
+          if(parser->TryConsume(parser, NULL_) != NULL) 
+          {
+            
+          } else {
+            prattParse(parser,SMI);
+          }
           parser->TryConsume_err(parser, SMI, "expected ';'");
           break;
         default:
