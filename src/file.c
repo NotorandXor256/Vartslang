@@ -39,3 +39,12 @@ src_code read_file(String filename) {
 
   return code;
 }
+
+void write_file(FILE *fp, String content){
+  if(fp == NULL){
+    printE("File ptr is null");
+    exit(-1);
+    return;
+  }
+  fprintf(fp, content);
+}

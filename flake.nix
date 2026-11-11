@@ -8,11 +8,12 @@
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux"; # or "aarch64-darwin" for Apple Silicon
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs { inherit system; };
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = with pkgs; [
+      devshells.${system}.default = pkgs.mkshell {
+        buildinputs = with pkgs; [
+          python3
           gcc
           gdb
           gnumake

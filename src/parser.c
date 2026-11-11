@@ -9,54 +9,11 @@
 #include "grammer.h"
 #include "asserts.h"
 
-typedef struct 
-{
-  expression base;
-  Token var;
-} variable_literal;
 
-typedef struct 
-{
-  expression base;
-  Token number;
-} number_literal;
-
-typedef struct 
-{
-  expression base;
-  expression* body;
-} sub_expression;
-
-typedef struct 
-{
-  expression base;
-  expression* lhs;
-  Token operator;
-  expression* rhs;
-} infix_expression;
-
-typedef struct {
-  expression base;
-  Token operator;
-  expression* body;
-} prefix_expression;
-//  <body:expression> <opeartor>
-typedef struct 
-{
-  expression base;
-  Token operator;
-  expression* body;
-} postfix_expression;
-
-typedef struct 
-{
-  int lp;
-  int rp;
-} binding_power;
 
 expression* create_expression(Parser *parser, int right_bp, TokenName stopAt);
 
-Token peek_token(struct Parser *parser,int offset)  // front
+Token peek_token(struct Parser *parser,size_t offset)  // front
 {
   Token_node *temp = ((Parser *)parser)->m_buf;
   for (int i = offset; i != 0; i--){
@@ -69,7 +26,7 @@ Token peek_token(struct Parser *parser,int offset)  // front
   return temp->val;
 }
 
-int peekFor_token(struct Parser *parser,int lookingFor,int offset)
+size_t peekFor_token(struct Parser *parser,int lookingFor,size_t offset)
 {
   Token temp = parser->peek(parser,offset);
   return temp.tok == (TokenName) lookingFor || temp.type == (TokenType) lookingFor;
@@ -88,7 +45,7 @@ Token *consume_token(struct Parser *parser)    // advance
   return temp;
 }
 
-Token *TryConsume_token(struct Parser *parser, int o)
+Token *TryConsume_token(struct Parser *parser, size_t o)
 {
   if(parser->peekFor(parser,o,0)) {
     // consume_token();
@@ -97,7 +54,7 @@ Token *TryConsume_token(struct Parser *parser, int o)
   return NULL;
 }
 
-Token *TryConsume_err_token(struct Parser *parser, int o, String message) 
+Token *TryConsume_err_token(struct Parser *parser, size_t o, String message) 
 {
   Token *temp = parser->TryConsume(parser,o);
   if(temp != NULL) {
@@ -107,6 +64,10 @@ Token *TryConsume_err_token(struct Parser *parser, int o, String message)
     exit(EXIT_FAILURE);
   }
   return NULL; 
+}
+
+void push_ast(Parser *parser, Statement *statment){
+
 }
 
 binding_power RightAssociative(int p) 
@@ -204,9 +165,12 @@ int postfix_expression_evaluate(expression* s)
   {
     case INC:   return body_res;  // increament body_res
     case DEC:   return body_res;
-    default:    printE("Invaild posfix oprator");
+    default:    
+      printE("Invaild posfix oprator");
+      exit(-1);
   }
 }
+
 int infix_expression_evaluate(expression* s) 
 {
   infix_expression* self = (infix_expression*)s;
@@ -236,7 +200,9 @@ int infix_expression_evaluate(expression* s)
     case XOR:   return (lhs_res ^ rhs_res);
     case SHL:   return (lhs_res << rhs_res);
     case SHR:   return (lhs_res >> rhs_res);
-    default:    printE("Operator doesn't recongized");
+    default:    
+      printE("Operator doesn't recongized");
+      exit(EXIT_FAILURE);
   }
 
 }
@@ -246,7 +212,7 @@ int infix_expression_evaluate(expression* s)
 
 expression* create_number_literal(Parser *parser) 
 {
-  number_literal* result = malloc(sizeof(number_literal));
+  number_literal* result = (number_literal *) allocate(parser->arena,sizeof(number_literal));
   result->base.evaluate = &number_evaluate;
 
   result->number = *(parser->consume(parser));
@@ -257,7 +223,7 @@ expression* create_number_literal(Parser *parser)
 
 expression* create_variable_literal(Parser *parser) 
 {
-  variable_literal* result = malloc(sizeof(variable_literal));
+  variable_literal* result = (variable_literal *) allocate(parser->arena,sizeof(variable_literal));
   result->base.evaluate = &variable_evaluate;
 
   result->var = *(parser->consume(parser));
@@ -268,7 +234,7 @@ expression* create_variable_literal(Parser *parser)
 
 expression* create_sub_expression(Parser *parser) 
 {
-  sub_expression* result = malloc(sizeof(sub_expression));
+  sub_expression* result = (sub_expression *) allocate(parser->arena,sizeof(sub_expression));
   result->base.evaluate = &sub_expression_evaluate;
   if (!parser->peekFor(parser,OCR,0)) {
     // Should do error handling!
@@ -289,7 +255,7 @@ expression* create_sub_expression(Parser *parser)
 
 expression* create_infix_expression(Parser *parser, expression* _lhs, int min_bp ) 
 {
-  infix_expression* result = malloc(sizeof(infix_expression));
+  infix_expression* result = (infix_expression *) allocate(parser->arena, sizeof(infix_expression));
   result->base.evaluate = &infix_expression_evaluate;
 
   result->lhs = _lhs;
@@ -302,7 +268,7 @@ expression* create_infix_expression(Parser *parser, expression* _lhs, int min_bp
 
 expression* create_prefix_expression(Parser *parser, int min_bp ) 
 {
-  prefix_expression* result = malloc(sizeof(prefix_expression));
+  prefix_expression* result = (prefix_expression*) allocate(parser->arena, sizeof(prefix_expression));
   result->base.evaluate = &prefix_expression_evaluate;
   result->operator = *(parser->consume(parser));
   result->body = create_expression(parser,min_bp, SMI);
@@ -312,7 +278,7 @@ expression* create_prefix_expression(Parser *parser, int min_bp )
 
 expression* create_postfix_expression(Parser *parser, expression* _lhs, int min_bp ) 
 {
-  prefix_expression* result = malloc(sizeof(prefix_expression));
+  prefix_expression* result = (prefix_expression *) allocate(parser->arena, sizeof(prefix_expression));
   result->base.evaluate = &postfix_expression_evaluate;
 
   result->body = _lhs;
@@ -375,7 +341,7 @@ expression* prattParse(Parser *parser, TokenName stopAt)
 }
 
 
-void parse_args(Parser *parser, int (*token)(Parser *)) 
+void *parse_args(Parser *parser, void *(*token)(Parser *)) 
 {
   token(parser);
   for(int i = 0; parser->peekFor(parser, CMA,0); i++)
@@ -385,38 +351,53 @@ void parse_args(Parser *parser, int (*token)(Parser *))
   }
 }
 
-void Parse(Parser *, TokenType);
+// void Parse(Parser *, int);
 
-void parse_block(Parser *parser) {
+Block *parse_block(Parser *parser) {
+  Block *stmt = (Block *) allocate(parser->arena, sizeof(Block));
   parser->TryConsume_err(parser, OCR, "expected '{' in block");
-  Parse(parser, CCR);
+  // Block *temp = Parse(parser, CCR);
+  Statement_node *temp = stmt->stmts;
+  for(int i = 0; parser->peekFor(parser, CCR, 0); i++)
+  {
+    Statement_node *temp_2 = new_arena_Statement_node(
+        create_stm(parser), 
+        parser->arena->malloc(parser,sizeof(Statement_node))
+    );
+    push_Statement_node(&(temp), temp_2);
+    temp = temp_2;
+  }
   parser->TryConsume_err(parser, CCR, "expected '}' in block");
+  return stmt;
 }
 
-Declear_var* parse_declear_var_stmt(Parser *parser)
+Statement* parse_declear_var_stmt(Parser *parser)
 {
-  Declear_var *stmt = (Declear_var *) malloc(sizeof(Declear_var));
+  Declear_var *stmt = (Declear_var *) allocate(parser->arena,sizeof(Declear_var));
   stmt->type = parser->TryConsume(parser,TYPE);
   stmt->id = parser->TryConsume_err(parser,ID, "expected IDENTIFER in declear_stmt ");
   if(parser->peekFor(parser, OP_ASSIGN, 0)) {
     parser->consume(parser);
     stmt->expr = prattParse(parser, SMI);
   }
-  return stmt;
+  return (Statement *) stmt;
 }
 
-int function_args_type(Parser *parser){
-  parser->TryConsume_err(parser, TYPE, "expected Type in function args type");
-  return 0;
-}
-int function_args_declear(Parser *parser)
+// size_t function_args_type(Parser *parser){
+//   parser->TryConsume_err(parser, LST, "expected '<-[]->' in arrary type");
+//   parser->TryConsume_err(parser,);
+//   return 0;
+// }
+
+void *function_args_declear(Parser *parser)
 { // add parser to this 
   parse_declear_var_stmt(parser);
   return 0;
 }
-void parse_declear_func_stmt(Parser *parser)
+Statement *parse_declear_func_stmt(Parser *parser)
 {
-  Declear_Func *stmt = (Declear_Func *) malloc(sizeof(Declear_Func));
+  Declear_Func *stmt = (Declear_Func *) allocate(parser->arena,sizeof(Declear_Func));
+  stmt->gen = NULL;
   stmt->is_extern = parser->TryConsume(parser, EXT) != NULL ? 1:0;
   parser->TryConsume_err(parser, FUN, "function Expected '<-@->' in fuction declearation statement" );
   parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
@@ -434,54 +415,76 @@ void parse_declear_func_stmt(Parser *parser)
     // stmt->args - parser_block(parser);
     parse_block(parser);
   }
+  return (Statement *) stmt;
 }
 
 
-void parse_assignment_var_stmt(Parser *parser)
+Statement *parse_assignment_var_stmt(Parser *parser)
 {
   parser->TryConsume_err(parser, IDENTIFER, "Expected IDENTIFER in assignment statment");
   parser->TryConsume_err(parser, OP_ASSIGN, "Expected '<-' in assignment statement");
   // parser->TryConsume_err(parser, O)
 }
 
-int function_args_var_declear(Parser *parser) {
+Statement *function_args_var_declear(Parser *parser) {
   parser->TryConsume_err(parser, TYPE, "expected Type in loop_stm");
   return 0;
 }
 
-int parse_expr(Parser *parser) {
+void *parse_expr(Parser *parser) {
   prattParse(parser, CCR);
   return 0;
 }
 
-void parse_loop_stmt(Parser *parser)
+Statement *parse_loop_stmt(Parser *parser)
 {
+  Lp_Stm *stmt = (Lp_Stm *) allocate(parser->arena,sizeof(Lp_Stm));
   parser->TryConsume(parser, LOP);
   parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
   // parse_declear_var_stmt(parser);
-  parse_args(parser, function_args_declear);
+  stmt->assign_stm = parse_args(parser, function_args_declear);
   parser->TryConsume_err(parser, SMI, "expected ';'");
-  prattParse(parser, SMI);
+  stmt->condition = prattParse(parser, SMI);
   parser->TryConsume_err(parser, SMI, "expected ';'");
-  parse_args(parser, parse_expr);
+  stmt->update = parse_args(parser, parse_expr);
   parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
   parser->TryConsume_err(parser, ARW,"Expected '->' in loop");
-  parse_block(parser);
+  stmt->b = parse_block(parser);
+  return (Statement *) stmt;
 }
 
-void parse_foreach_loop_stmt(Parser *parser) {
-
-}
-
-void parse_do_while_stmt(Parser *parser) {
+Statement *parse_foreach_loop_stmt(Parser *parser) {
 
 }
 
-void parse_if_stmt(Parser *parser) 
+Statement *parse_do_while_stmt(Parser *parser) {
+  Do_Lp_Stm *stmt = (Do_Lp_Stm *) allocate(parser->arena, sizeof(Do_Lp_Stm));
+  stmt->b = parse_block(parser);
+  parser->TryConsume_err(parser, ARW, "Expected '->' in do-while statment");
+  parser->TryConsume(parser, LOP);
+  parser->TryConsume_err(parser, OCR, "expected '{' function declearation");
+  stmt->assign_stm = parse_args(parser, function_args_declear);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  stmt->condition = prattParse(parser, SMI);
+  parser->TryConsume_err(parser, SMI, "expected ';'");
+  stmt->update = parse_args(parser, parse_expr);
+  parser->TryConsume_err(parser, CCR, "expected '}' function declearation");
+  return (Statement *) stmt;
+}
+
+LINKED_LIST(expression, expression_node);
+LINKED_LIST(Block, block_node);
+
+Statement *parse_if_stmt(Parser *parser) 
 {
-  parser->consume(parser);
+  If_Stm *stmt = (If_Stm *) allocate(parser->arena,sizeof(If_Stm));
+  stmt->no_of_expr = 0;
+  stmt->no_of_block = 0;
+  parser->TryConsume_err(parser, IF, "expected '?' in if statement");
   parser->TryConsume_err(parser, OCR, "expected '{' if statement");
-  prattParse(parser, CCR);
+  // stmt->expr = prattParse(parser, CCR);
+  push_expression_node(&(stmt->expr), prattParse(parser, CCR));
+  stmt->no_of_expr++;
   parser->TryConsume_err(parser, CCR, "expected '}' if statement");
   parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
   parse_block(parser);
@@ -490,59 +493,108 @@ void parse_if_stmt(Parser *parser)
     parser->TryConsume(parser,ARW);
     parser->TryConsume_err(parser, IF, "expected '?' in if statement");
     parser->TryConsume_err(parser, OCR, "expected '{' if statement");
-    prattParse(parser, CCR);
+    // prattParse(parser, CCR);
+    push_expression_node(&(stmt->expr), prattParse(parser, CCR));
+    stmt->no_of_expr++;
     parser->TryConsume_err(parser, CCR, "expected '}' if statement");
     parser->TryConsume_err(parser, ARW,"Expected '->' in if statement");
-    parse_block(parser);
+    push_block_node(&(stmt->b), parse_block(parser));
+    stmt->no_of_block++;
   }
   if(parser->peekFor(parser,ARW,0)) 
   {
     parser->TryConsume(parser, ARW);
-    parse_block(parser);
+    push_block_node(&(stmt->b), parse_block(parser));
+    stmt->no_of_block++;
+  }
+  return (Statement *) stmt;
+}
+
+void parse_arrary(Parser *parser)
+{
+  parser->TryConsume_err(parser, OCR, "Expected '{' in array");
+  if(parser->peekFor(parser, OCR, 0))
+  {
+    // here nested arrary
+    parse_arrary(parser); 
+  }
+  else
+  {
+    prattParse(parser, CCR);
   }
 }
 
-void parse_declear_arr_stmt(Parser *parser)
+Statement *parse_declear_arr_stmt(Parser *parser)
 {
-  // parser->TryConsume(parser, LST);
-  // parser->TryConsume_err(parser, OCR);
-  // parser->Try
+  Declear_Arr *stmt = (Declear_Arr *) allocate(parser->arena, sizeof(Declear_Arr));
+  parser->TryConsume_err(parser, LST);
+  parser->TryConsume_err(parser, OCR);
+  stmt->type = prattParse(parser,OCR);
+  parser->TryConsume_err(parser, CCR, "Expected '}' in arrary decleartion");
+  stmt->id = parser->TryConsume_err(parser, IDENTIFER, "Expected IDENTIFER in arryary decleartion");
+  if(parser->TryConsume(parser, OP_ASSIGN)) {
+    parser->TryConsume_err(parser, LIT, "Expected '[]' in arrary decleartion");
+    parser->TryConsume_err(parser, OCR, "Expected '{' in arrary decleartion");
+    // parse_expr(parser);
+    stmt->dim = parse_args(parser,parse_expr);
+    parser->TryConsume_err(parser, CCR, "Expected '}' in arrary declearation");
+    parser->TryConsume_err(parser, ARW, "Expected '->' in arrary declearation");
+    // arrary
+    stmt->arr = parse_arrary(parser);
+  } else {
+    
+    stmt->dim = 0;
+    stmt->arr = NULL;
+  }
+  return (Statement *) stmt;
 }
 
-void parse_declear_stru_stmt(Parser *parser) 
+Statement *parse_declear_strut_stmt(Parser *parser) 
 {
-  // parser->TryConsume(parser,STC);
-  // parser->TryConsume_err(parser,OCR);
-  // parser->TryConsume_err(parser, CCR);
-  // parser->TryConsume_err(parser, ID);
-  // if(parser->TryConsume(parser, OP_ASSIGN) != NULL) 
-  // {
-  //   parser->TryConsume_err(parser, STA);
-  //   parser->TryConsume_err(parser, OCR);
-  //   parser->TryConsume_err(parser, CCR);
-  //   parser->TryConsume_err(parser, ARW);
-  //   parser->TryConsume_err(parser, OCR);
-  //   parse_args(parser);
-  //   parser->TryConsume_err(parser, CCR);
-  // }
+  Declear_Struct *stmt = (Declear_Struct *) allocate(parser->arena, sizeof(Declear_Struct));
+  parser->TryConsume(parser,STC);
+  parser->TryConsume_err(parser,OCR, "Expected '{' in struct decleartion");
+  parser->TryConsume_err(parser, CCR, "Expected '}' in struct decleartion");
+  stmt->id = parser->TryConsume_err(parser, ID);
+  if(parser->TryConsume(parser, OP_ASSIGN) != NULL) 
+  {
+    parser->TryConsume_err(parser, STA, "Expected '<+>' in struct decleartion");
+    parser->TryConsume_err(parser, OCR, "Expected '{' in struct decleartion");
+    parser->TryConsume_err(parser, CCR, "Expected '}' in struct decleartion");
+    parser->TryConsume_err(parser, ARW, "Expected '->' in struct decleartion");
+    parser->TryConsume_err(parser, OCR, "Expected '{' in struct decleartion");
+    stmt->members = parse_args(parser, parse_declear_var_stmt);
+    parser->TryConsume_err(parser, CCR, "Expected '}' in struct decleartion");
+  }
+  return (Statement *) stmt;
 }
 
-void parse_declear_enum_stmt(Parser *parser) 
+size_t consume_enum_memeber(Parser *parser) {
+  if(parser->TryConsume(parser,IDENTIFER) && 
+     parser->TryConsume(parser,OP_ASSIGN))
+  {
+    parser->TryConsume_err(parser, LITERAL, "Expected a LITERAL in enum decleartion statement");
+  }
+
+}
+
+Statement *parse_declear_enum_stmt(Parser *parser) 
 {
-  // parser->TryConsume_err(parser,ENM, "Expected '<-<|>->' ");
-  // parser->TryConsume_err(parser, OCR, "expected '{' enum decleartion statement"});
-  // parser->TryConsume_err(parser,CCR, "Expec");
-  // parser->TryConsume_err(parser, ID);
-  //
-  // if(parser->TryConsume(parser,OP_ASSIGN)){
-  //   parser->TryConsume_err(parser, ENA);
-  //   parser->TryConsume_err(parser,OCR);
-  //   parser->TryConsume_err(parser,CCR);
-  //   parser->TryConsume_err(parser,ARW);
-  //   parser->TryConsume_err(parser,OCR);
-  //   parse_args(parser);
-  //   parser->TryConsume_err(parser,CCR);
-  // }
+  parser->TryConsume_err(parser,ENM, "Expected '<-<|>->' ");
+  parser->TryConsume_err(parser, OCR, "expected '{' enum decleartion statement");
+  parser->TryConsume_err(parser,CCR, "Expected '}' in enum decleartion ");
+  parser->TryConsume_err(parser, ID);
+
+  if(parser->TryConsume(parser,OP_ASSIGN)){
+    parser->TryConsume_err(parser, ENA);
+    parser->TryConsume_err(parser, OCR);
+    parser->TryConsume_err(parser, CCR);
+    parser->TryConsume_err(parser, ARW);
+    parser->TryConsume_err(parser, OCR);
+    parse_args(parser,consume_enum_memeber);
+    parser->TryConsume_err(parser,CCR);
+  }
+  return NULl;
 }
 
 void parse_declear_class_stmt(Parser *parser)
@@ -553,79 +605,84 @@ void parse_declear_class_stmt(Parser *parser)
   // parser->TryConsume_err(parser, ID);
   // parser->TryConsume_err(parser);
 }
+
 Statement *create_stm(Parser *parser)
 {
+  Statement *stmt = NULL;
   switch (parser->peek(parser,0).type) {
     case TYPE:
       // decleartion 
-      parse_declear_var_stmt(parser);
+      stmt = parse_declear_var_stmt(parser);
       parser->TryConsume_err(parser, SMI, "expected ';'");
+      return stmt;
       break;
     case KEYWORD:
-      /*
-       */
       switch (parser->peek(parser,0).tok) {
         case IMP:
           // import statement
           parser->consume(parser);
           parser->TryConsume_err(parser, ID, "expected 'IDENTIFER'");
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return NULL;
           break;
         case EXT:
-          parse_declear_func_stmt(parser);
-          parser->TryConsume_err(parser, SMI, "expected ';'");
-          break;
         case FUN:
           // Fucntion decleartion
-          parse_declear_func_stmt(parser);
+          stmt = (Statement *) parse_declear_func_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         case LOP:
           // Loop statement
-          parse_loop_stmt(parser);
+          stmt = (Statement *) parse_loop_stmt(parser);
+          return stmt;
           break;
         case FEL:
           // for each loop statement
-          parse_foreach_loop_stmt(parser);
+          stmt = (Statement *) parse_foreach_loop_stmt(parser);
+          return stmt;
           break;
         case LST:
           // list decleartion
-          parse_declear_arr_stmt(parser);
+          stmt = (Statement *) parse_declear_arr_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         case STC:
           // Struct decleartion
-          parse_declear_stru_stmt(parser);
+          stmt = (Statement *) parse_decleart_stru_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         case ENM:
           // Enum decleartion
-          parse_declear_enum_stmt(parser);
+          stmt = (Statement *) parse_declear_enum_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         case CLS:
           // class decleartion
-          parse_declear_class_stmt(parser);
+          stmt = (Statement *) parse_declear_class_stmt(parser);
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         case IF:
           // if elif else statement
-          parse_if_stmt(parser);
+          stmt = (Statement *) parse_if_stmt(parser);
+          return stmt;
           break;
         case RET:
           // return statement
           parser->consume(parser);
-          if(parser->TryConsume(parser, SMI) != NULL)
-          {
-            break;
-          }
-          if(parser->TryConsume(parser, NULL_) != NULL) 
+          if(parser->TryConsume(parser, NULL_) != NULL || 
+             parser->TryConsume(parser, SMI) != NULL) 
           {
             
           } else {
             prattParse(parser,SMI);
           }
           parser->TryConsume_err(parser, SMI, "expected ';'");
+          return stmt;
           break;
         default:
           printE("invaaild statement");
@@ -637,7 +694,8 @@ Statement *create_stm(Parser *parser)
       /*
        */
       // do-while loop
-      parse_do_while_stmt(parser);
+      stmt = (Statement *)  parse_do_while_stmt(parser);
+      return stmt;
       break;
     case IDENTIFER:
       // 
@@ -651,6 +709,7 @@ Statement *create_stm(Parser *parser)
           parse_args(parser, parse_expr);
           parser->TryConsume_err(parser, CCR, "expected '}' in function call");
           parser->TryConsume_err(parser, SMI, "expected ';' in function call");
+          // return stmt;
           break;
         case ARW:
           // parse assignment statements
@@ -664,32 +723,30 @@ Statement *create_stm(Parser *parser)
       printf("tokentype = %d\n", parser->peek(parser,0).type);
       printf("token = %d\n", parser->peek(parser,0).tok);
   }
-  // int lenght = 0;
-  // // Token_2Dnode *temp_ptr = (Token_2Dnode *) malloc(sizeof(Token_2Dnode));
-  // Token_2Dnode *Ast_list;
-  // Token_node **temp_ptr = &(parser->m_buf);
-  // /*
-  //  * (*temp_ptr)->val->tok != SEMI || !parser->peekFor(parser,KEYWORD)
-  //  **/
-  // for (int i = 0; parser->peekFor(parser,EOF_,0); i++)
-  // {
-  //   if(parser->peekFor(parser,SMI, 0) || parser->peekFor(parser, KEYWORD, 1))
-  //   {
-  //
-  //   } 
-  //   else 
-  //   {
-  //     printE("Error");
-  //   }
-  // } 
 }
 
-void Parse(Parser *parser, TokenType stopAt) 
+Statement_node *Parse_Statement(Parser *parser, int stopAt) 
 {
-  for (int i= 0; !parser->peekFor(parser, stopAt, 0); i++) 
+  Statement_node *stmts = parser->m_buf;
+  Statement_node *temp = NULL;
+  for (int i= 0; parser->peekFor(parser, stopAt, 0) != NULL; i++) 
   {
-    Statement *stm = create_stm(parser);
+    if(stmts == NULL){
+      stmts= create_stm(parser);
+      push_Statement_node(&(stmts), stmts);
+      temp = stmsts;
+      continue;
+    }
+    temp = create_stm(parser);
+    push_Statement_node(&(temp), temp);
+    // stmt->gen(generate, stmt);
   }
+  return stmts;
+}
+
+void Parse(Parser *parser, int stopAt) 
+{
+  parser->m_res = Parse_Statement(parser, stopAt);
 }
 
 

@@ -12,7 +12,7 @@
 
 <declear/array> ::=  "<-[]->" "{" <expr>  ( "," <expr> )* "}" <identifer> (<op/assign> "[]" <array> )?
 
-<array> ::= "{" ( ( <expr> | <array> ) ( "," <expr> | <array> )* )? "}" 
+<array> ::= "{" ( (<expr>  ( "," <expr>  )* ) | (  <array>  ( "," <array>  )* ) )? "}" 
 
 <declear/function> ::= "<=$=>"? "<-@->" "{" <type> "}" <identifer>  (<op/assign> "@" "{" <declear/variable>? ("," <declear/variable> )* "}" <arrow> <block> )?
 

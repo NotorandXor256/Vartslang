@@ -1,40 +1,35 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdarg.h>
+
 #include "asserts.h"
 
-/*
-node *new(void *val){
-  node *temp = (node *) malloc(sizeof(node));
-  temp->val = val;
-  temp->next = NULL;
+uintptr_t *a(Arena *arena, size_t size) {
+  if(size > arena->size - arena->offset) {
+    printL("space not left in arena, %d\n", arena->size - arena->offset);
+    return NULL;
+  }
+  uintptr_t *temp = arena->data + arena->offset;
+  arena->offset += size;
   return temp;
 }
 
-node *next(node *cur){
-  return cur->next;  
+uintptr_t *allocate(Arena_node *arena,size_t size)
+{
+  if(size > (arena->val.size)) {
+    printE("can't allocate this big memory");
+    return NULL;
+  }
+  if(size > arena->val.size - arena->val.offset){
+    Arena temp = {
+      .data = (uintptr)malloc(arena->val.size), 
+      .size = arena->val.size,
+      .offset = 0
+    };
+    arena = push_Arena_node(&(arena),new_Arena_node(temp));
+  } 
+  return a(&(arena->val), size);
 }
-
-void push(node **cur, node *next_el) {
-  if(*cur == NULL){
-    printf("node is null");
-    return;
-  }
-  if((*cur)->next == NULL){
-    (*cur)->next = next_el; 
-    return;
-  }
-  push(&next(*cur),next_el);
-}
-
-void show_item(Token *t,int i) {
-  if(t == NULL) {
-    printf("----\n");
-    return;
-  }
-  printf("%s, %d -> %d\n",t->value, i, (int) t->type );
-  show_item(t->n_token, i+1);
-}*/
 
 void printE_impl(CString func, CString file,int line, CString message, ...) {
 

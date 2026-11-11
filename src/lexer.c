@@ -96,6 +96,17 @@ Token to_token(const String token_src) {
   else if (strcmp(token_src, ",") == 0)         return (Token){CMA,PUNCTATION,1,{NULL}};
   else if (strcmp(token_src, "\n") == 0)        return (Token){NL ,PUNCTATION,1,{NULL}};
   
+
+  else if (*token_src == '"'){
+    // String temp = (token_src +1);
+    // *(temp + len -2) = '\0';
+    size_t str_len = strlen(token_src);
+    String temp = (String) malloc(str_len-1);
+    strncpy(temp, token_src+1, str_len - 1);
+    temp[str_len-2] = '\0';
+    return (Token){STR,LITERAL,0,{.str_value = temp}};
+  }                   
+
   //literals
   else if (isdigit(*token_src))                 return (Token){INT,LITERAL,0,{.numral_value = atoi(token_src)}};
   else if (strcmp(token_src, ":+:") == 0)       return (Token){TRU,LITERAL,0,{.numral_value = 1}};
@@ -103,7 +114,7 @@ Token to_token(const String token_src) {
   else if (strcmp(token_src, "><") == 0)        return (Token){NULL_,LITERAL,0,{NULL}};
   else if (*token_src == 0)                     return (Token){EOF_, SPEICAL, 0 ,{NULL}};
 
-  else if (isalpha(*token_src))                 return (Token){ID, IDENTIFER,0, {.str_value = token_src}};
+  else if (isalpha(*token_src) || *token_src == '_')                 return (Token){ID, IDENTIFER,0, {.str_value = token_src}};
 
   else {
     printf("lexer.c to_token function: unknown token %s, %d, %d\n", token_src,*token_src,*(token_src+1));
@@ -113,10 +124,10 @@ Token to_token(const String token_src) {
   }
 }
 
-Token ret_token(lexer *src, int (*fun)(char), int offset) {
+Token ret_token(lexer *src, int (*fun)(char, int), int offset) {
   int lenght = 0;
   chr_node **temp_ptr = &(src->m_buf); 
-  for (int i = 0;fun(peek_char(src,offset));i++) {
+  for (int i = 0;fun(peek_char(src,offset), i);i++) {
     if (i > 17) break;
     char temp_char_var = consume_char(src);
     push_chr_node(temp_ptr,new_chr_node(temp_char_var));
@@ -142,7 +153,7 @@ Token ret_token(lexer *src, int (*fun)(char), int offset) {
   return tok;
 }
 
-int alpha(char chr) {
+int alpha(char chr, int i) {
   return (
     isalpha(chr) || 
     isdigit(chr) || 
@@ -150,14 +161,14 @@ int alpha(char chr) {
   );
 }
 
-int numa(char chr) {
+int numa(char chr, int i) {
   return (
     isdigit(chr) || 
     chr == '_'
   );
 }
 
-int is_pucuation(char chr){
+int is_pucuation(char chr, int i){
   return (
     // chr == ';' || 
     chr == '{' || 
@@ -167,19 +178,21 @@ int is_pucuation(char chr){
     chr == ';'
   );
 }
-int extr(char chr) {
+int extr(char chr, int i) {
   return !(
     chr == ' ' ||
     isdigit(chr) ||
     isalpha(chr) ||
-    is_pucuation(chr)
+    is_pucuation(chr,i)
   );
 }
 
+int str(char chr, int i) {
+  return i != 0 && chr == '"';
+}
 
-
-int reverse_puc(char chr) {
-  return !is_pucuation(chr);
+int reverse_puc(char chr, int i) {
+  return !is_pucuation(chr,i);
 }
 
 void tokenize(lexer *src) { // make this return list of tokens somehow
@@ -198,7 +211,12 @@ void tokenize(lexer *src) { // make this return list of tokens somehow
       Token_node *tok = new_Token_node(ret_token(src,numa,0));
       push_Token_node(&(src->m_res),tok);
     } 
-    else if (is_pucuation(peek_char(src,0)))
+    else if (peek_char(src, 0) == '"')
+    {
+      Token_node *tok = new_Token_node(ret_token(src,str,0));
+      push_Token_node(&(src->m_res),tok);
+    }
+    else if (is_pucuation(peek_char(src,0), 0))
     {
       // Token_node *tok = new_Token_node(ret_token(src,reverse_puc,-1));
       char temp[2];

@@ -24,25 +24,81 @@ GEN_FUN(is_puctation, (int) ARW,(int) INT)
 GEN_FUN(is_liter,(int) INT,(int) COLLECTION)
 GEN_FUN(is_identifer,(int) ID,(int) EOF_)
 
-
-typedef struct Block Block;
-typedef struct Program Program;
-
-typedef Token Type;
-typedef Token Identifer;
-
 typedef struct expression 
 {
   int(*evaluate)(struct expression*);
 } expression;
 
+typedef struct 
+{
+  expression base;
+  Token var;
+} variable_literal;
+
+typedef struct 
+{
+  expression base;
+  Token number;
+} number_literal;
+
+typedef struct 
+{
+  expression base;
+  expression* body;
+} sub_expression;
+
+typedef struct 
+{
+  expression base;
+  expression* lhs;
+  Token operator;
+  expression* rhs;
+} infix_expression;
+
+typedef struct {
+  expression base;
+  Token operator;
+  expression* body;
+} prefix_expression;
+//  <body:expression> <opeartor>
+typedef struct 
+{
+  expression base;
+  Token operator;
+  expression* body;
+} postfix_expression;
+
+typedef struct 
+{
+  int lp;
+  int rp;
+} binding_power;
+
+typedef struct Program Program;
+typedef struct Statement {
+  void (*gen)(void *, struct Statement *);
+} Statement;
+
+typedef struct Block {
+  void *stmts; //type  Statement_node
+} Block;
+
+
+typedef Token Type;
+typedef Token Identifer;
+
 typedef struct Arrary 
 {
-    
+  size_t is_arrary;    
+  union {
+    expression expr; 
+    struct Arrary *expr_nested; 
+  } obj;
 } Arrary;
 
 //#include "parser.h"
 typedef struct {
+  void (*gen)(void *, Statement *);
   Type *type;
   Identifer *id;
   expression *expr;
@@ -50,37 +106,43 @@ typedef struct {
 
 typedef struct {
   Identifer *id;
-  expression expr;
+  expression *expr;
 } Assign_Var;
 
 typedef struct {
+  void (*gen)(void *, Statement *);
   expression *type;
   Identifer *id;
-   
+  expression **dim;
+  Arrary *arr; 
 } Declear_Arr;
 
 typedef struct {
-  Type *type;
+  Type type;
   Identifer id;
   expression expr;
 } Assign_Arr;
 
 typedef Declear_var arguments;
 typedef struct {
-  int is_extern;
+  void (*gen)(void *, Statement *);
+  size_t is_extern;
   Type *type;
   Identifer *id;
   arguments *args; 
-  union {
-    Block *b; 
-    Identifer *func_ptr; // if assigned value of an other function
-  } code;
+  Block *b; 
   // expression ret; // return statement
 } Declear_Func;
 
 typedef struct {
+  void (*gen)(void *, Statement *);
+  Identifer id;
+  Declear_var *members;
+} Declear_Struct;
+
+typedef struct {
   Identifer id; 
-  Assign_Var *assign_stm;
+  Assign_Var assign_stm;
 } Assign_Struct;
 
 typedef struct {
@@ -92,16 +154,16 @@ typedef struct {
   Identifer id;
 } Assign_Class;
 
-typedef struct {
+typedef union {
   Declear_var Var;
   Declear_Arr Arr;
   Declear_Func Func;
-  // Declear_Struct Struct;
+  Declear_Struct Struct;
   // Declear_Enum Enum;
   // Declear_Class Class;
 } Declear_Stm;
 
-typedef struct {
+typedef union {
   Assign_Var Var;
   Assign_Arr Arr;
   // Assign_Func Func;
@@ -111,23 +173,28 @@ typedef struct {
 } Assign_Stm;
 
 typedef struct If_Stm {
-  expression *expr;
-  Block *b;
-  struct If_Stm *next;
+
+  void (*gen)(void *, Statement *);
+  expression expr;
+  size_t no_of_expr;
+  Block b;
+  size_t no_of_block;
 } If_Stm;
 
 typedef struct  {
-  Assign_Stm *assign_stm;
-  expression condition;   
-  expression *update;
+  Assign_Stm **assign_stm;
+  expression *condition;   
+  expression **update;
   Block *b;
 } Lp_Stm;
 
 typedef struct {
+
+  void (*gen)(void *, Statement *);
+  Block b;
   Assign_Stm *assign_stm;
   expression condition;   
   expression *update;
-  Block *b;
 } Do_Lp_Stm;
 
 typedef struct {
@@ -135,33 +202,21 @@ typedef struct {
 } For_Each_Loop;
 
 typedef struct {
-  Token *output_type;
-  Token *id;
+  void (*gen)(void *, Statement *);
+  Token output_type;
+  Token id;
 } Func_Call_Stm;
 
-typedef struct {
-  Assign_Stm assign_stm;
-  Func_Call_Stm func_call_stm;
-} Simple_Stm;
-
-typedef union {
-  If_Stm if_stm;
-  Lp_Stm lp_stm;
-  Do_Lp_Stm do_lp_stm;
-  For_Each_Loop for_each_loop;
-} Compound_Stm;
-
-struct block {
-  Compound_Stm *statements;
-};
-
-typedef union {
-  Simple_Stm *stament;
-  Compound_Stm *statements;
-} Statement;
-
+// typedef union {
+//   Assign_Stm assign_stm;
+//   Func_Call_Stm func_call_stm;
+//   If_Stm if_stm;
+//   Lp_Stm lp_stm;
+//   Do_Lp_Stm do_lp_stm;
+//   For_Each_Loop for_each_loop;
+// } Statement;
+//
 struct Program {
-  Statement *stms; 
+  Statement *stmt; 
 };
-
 #endif
